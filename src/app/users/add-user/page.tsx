@@ -82,7 +82,7 @@ export default function AllDocTable() {
     }
   };
 
-  const handleRemoveRole = (roleName: string) => {
+  const handleRemoveRole = () => {
     setSelectedRoleIds([]);
     setRoles([]);
   };
@@ -314,7 +314,7 @@ export default function AllDocTable() {
                         <IoClose
                           className="ms-2"
                           style={{ cursor: "pointer" }}
-                          onClick={() => handleRemoveRole(role)}
+                          onClick={() => handleRemoveRole()}
                         />
                       </span>
                     ))}
