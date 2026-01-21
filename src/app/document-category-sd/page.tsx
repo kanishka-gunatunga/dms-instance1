@@ -42,7 +42,6 @@ interface Category {
     template: string;
     status: string;
     children?: Category[];
-    service_desk_tempalte_id: string;
 }
 
 export default function AllDocTable() {
@@ -70,7 +69,6 @@ export default function AllDocTable() {
         description: "",
         template: "",
         ftp_account: "",
-        service_desk_tempalte_id: ""
     });
     const [attributeData, setattributeData] = useState<string[]>([]);
     const [currentAttribue, setcurrentAttribue] = useState<string>("");
@@ -80,7 +78,6 @@ export default function AllDocTable() {
         FtpAccDropdownItem[]
     >([]);
     const [selectedFtpId, setSelectedFtpId] = useState<string>("");
-    const [serviceDeskTempalteId, setServiceDeskTempalteId] = useState<string>("");
 
     const [modalStates, setModalStates] = useState({
         addCategory: false,
@@ -108,11 +105,6 @@ export default function AllDocTable() {
             [id]: !prevState[id],
         }));
     };
-
-    useEffect(() => {
-        setServiceDeskTempalteId(editData.service_desk_tempalte_id);
-    }, [editData.service_desk_tempalte_id]);
-
 
     useEffect(() => {
         setSelectedFtpId(editData.ftp_account);
@@ -218,8 +210,7 @@ export default function AllDocTable() {
             formData.append("description", description);
             formData.append("attribute_data", JSON.stringify(attributeData))
             formData.append("ftp_account", selectedFtpId);
-            formData.append("service_desk_tempalte_id", serviceDeskTempalteId);
-
+      
             formData.forEach((value, key) => {
                 console.log(`${key}: ${value}`);
             });
@@ -235,7 +226,7 @@ export default function AllDocTable() {
                 setDescription("")
                 setSelectedCategoryId("")
                 setSelectedFtpId("")
-                setServiceDeskTempalteId("")
+            
 
                 setToastType("success");
                 setToastMessage("Category added successfully!");
@@ -274,8 +265,7 @@ export default function AllDocTable() {
 
             formData.append("attribute_data", JSON.stringify(attributeData))
             formData.append("ftp_account", selectedFtpId);
-            formData.append("service_desk_tempalte_id", serviceDeskTempalteId);
-            
+
             formData.forEach((value, key) => {
                 console.log(`${key}: ${value}`);
             });
@@ -292,7 +282,6 @@ export default function AllDocTable() {
                 setDescription("")
                 setSelectedCategoryId("")
                 setSelectedFtpId("")
-                setServiceDeskTempalteId("")
 
                 // handleCloseModal("addChildCategory");
                 setToastType("success");
@@ -322,59 +311,59 @@ export default function AllDocTable() {
             // console.error("Error new version updating:", error);
         }
     };
-const fetchCategoryDetails = async () => {
-    try {
-        const response = await getWithAuth(`category-details/${selectedItemId}`);
-        console.log("Fetched category:", response);
+    const fetchCategoryDetails = async () => {
+        try {
+            const response = await getWithAuth(`category-details/${selectedItemId}`);
+            console.log("Fetched category:", response);
 
-        // --- FIX ATTRIBUTE HANDLING -------
-        let attributesList: string[] = [];
+            // --- FIX ATTRIBUTE HANDLING -------
+            let attributesList: string[] = [];
 
-        const rawAttributes = response.attributes?.attributes; 
-        //             👆 THIS is the actual array string
+            const rawAttributes = response.attributes?.attributes;
+            //             👆 THIS is the actual array string
 
-        if (Array.isArray(rawAttributes)) {
-            attributesList = rawAttributes;
+            if (Array.isArray(rawAttributes)) {
+                attributesList = rawAttributes;
 
-        } else if (typeof rawAttributes === "string") {
-            try {
-                attributesList = JSON.parse(rawAttributes);
-            } catch (err) {
-                console.error("Attribute JSON parse error:", err);
+            } else if (typeof rawAttributes === "string") {
+                try {
+                    attributesList = JSON.parse(rawAttributes);
+                } catch (err) {
+                    console.error("Attribute JSON parse error:", err);
+                }
             }
+
+            const parsedAttributes = attributesList
+                .map((attr: string) => attr.trim())
+                .filter(Boolean);
+
+            // SET STATE
+            setattributeData(parsedAttributes);
+
+            setEditData(prev => ({
+                ...prev,
+                attributes: parsedAttributes
+            }));
+
+            // FIX DESCRIPTION
+            const fixedDescription =
+                response.description === "null" || response.description == null
+                    ? ""
+                    : response.description;
+
+            setEditData(prev => ({
+                ...prev,
+                ...response,
+                description: fixedDescription
+            }));
+
+            // FTP
+            setSelectedFtpId(response.ftp_account?.toString() || "");
+
+        } catch (error) {
+            console.error("Error while loading category:", error);
         }
-
-        const parsedAttributes = attributesList
-            .map((attr: string) => attr.trim())
-            .filter(Boolean);
-
-        // SET STATE
-        setattributeData(parsedAttributes);
-
-        setEditData(prev => ({
-            ...prev,
-            attributes: parsedAttributes
-        }));
-
-        // FIX DESCRIPTION
-        const fixedDescription =
-            response.description === "null" || response.description == null
-                ? ""
-                : response.description;
-
-        setEditData(prev => ({
-            ...prev,
-            ...response,
-            description: fixedDescription
-        }));
-
-        // FTP
-        setSelectedFtpId(response.ftp_account?.toString() || "");
-
-    } catch (error) {
-        console.error("Error while loading category:", error);
-    }
-};
+    };
 
 
 
@@ -386,12 +375,8 @@ const fetchCategoryDetails = async () => {
             formData.append("category_name", editData.category_name || "");
             formData.append("description", editData.description);
             formData.append("attribute_data", JSON.stringify(attributeData));
-           if (selectedFtpId && selectedFtpId !== "null") {
+            if (selectedFtpId && selectedFtpId !== "null") {
                 formData.append("ftp_account", selectedFtpId);
-            }
-
-            if (serviceDeskTempalteId && serviceDeskTempalteId !== "null") {
-                formData.append("service_desk_tempalte_id", serviceDeskTempalteId);
             }
 
             formData.forEach((value, key) => {
@@ -437,7 +422,7 @@ const fetchCategoryDetails = async () => {
     const handleDeleteCategory = async () => {
         // console.log("delete", selectedItemId);
         try {
-            const response = await  getWithAuth(
+            const response = await getWithAuth(
                 `delete-category/${selectedItemId}`
             );
             if (response.status === "success") {
@@ -866,19 +851,6 @@ const fetchCategoryDetails = async () => {
                         </div>
                         <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
                             <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
-                                Service Desk Tempalte ID
-                            </p>
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={serviceDeskTempalteId}
-                                    onChange={(e) => setServiceDeskTempalteId(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-                            <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
                                 Description
                             </p>
                             <textarea
@@ -1101,7 +1073,7 @@ const fetchCategoryDetails = async () => {
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="col d-flex flex-column justify-content-center align-items-center p-0 px-3 px-lg-0 mb-2">
                             <p
                                 className="mb-1 text-start w-100"
@@ -1130,19 +1102,6 @@ const fetchCategoryDetails = async () => {
                                     </Dropdown.Item>
                                 ))}
                             </DropdownButton>
-                        </div>
-                         <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-                            <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
-                                Service Desk Tempalte ID
-                            </p>
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={serviceDeskTempalteId}
-                                    onChange={(e) => setServiceDeskTempalteId(e.target.value)}
-                                />
-                            </div>
                         </div>
                         <div className="col-12 col-lg-12 d-flex flex-column mb-2">
                             <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
@@ -1403,19 +1362,6 @@ const fetchCategoryDetails = async () => {
                                 )}
                             </DropdownButton>
                         </div>
-                         <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-                            <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
-                                Service Desk Tempalte ID
-                            </p>
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={serviceDeskTempalteId}
-                                    onChange={(e) => setServiceDeskTempalteId(e.target.value)}
-                                />
-                            </div>
-                        </div>        
                         <div className="col-12 col-lg-12 d-flex flex-column mb-2">
                             <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
                                 Description
