@@ -12,9 +12,9 @@ import { useRouter } from "next/navigation";
 import { IoClose, IoSaveOutline } from "react-icons/io5";
 import { MdOutlineCancel } from "react-icons/md";
 import ToastMessage from "@/components/common/Toast";
-import { fetchRoleData,fetchSectors } from "@/utils/dataFetchFunctions";
+import { fetchRoleData, fetchSectors } from "@/utils/dataFetchFunctions";
 import { RoleDropdownItem } from "@/types/types";
-import {SectorDropdownItem } from "@/types/types";
+import { SectorDropdownItem } from "@/types/types";
 
 type Params = {
   id: string;
@@ -30,7 +30,7 @@ interface ValidationErrors {
   mobile_no?: string;
   email?: string;
   role?: string;
-  sector?:string;
+  sector?: string;
 }
 
 
@@ -51,9 +51,9 @@ export default function AllDocTable({ params }: Props) {
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [selectedSectorId, setSelectedSectorId] = useState<string>("");
-    const [sectorDropDownData, setSectorDropDownData] = useState<
-      SectorDropdownItem[]
-    >([]);
+  const [sectorDropDownData, setSectorDropDownData] = useState<
+    SectorDropdownItem[]
+  >([]);
 
   const router = useRouter();
   const id = params?.id;
@@ -109,23 +109,15 @@ export default function AllDocTable({ params }: Props) {
       (role) => role.id.toString() === roleId
     );
 
-    if (selectedRole && !selectedRoleIds.includes(roleId)) {
-      setSelectedRoleIds((prev) => [...prev, roleId]);
-      setRoles((prev) => [...prev, selectedRole.role_name]);
+    if (selectedRole) {
+      setSelectedRoleIds([roleId]);
+      setRoles([selectedRole.role_name]);
     }
   };
 
-  const handleRemoveRole = (roleId: string) => {
-    const roleToRemove = roleDropDownData.find(
-      (role) => role.id.toString() === roleId
-    );
-
-    if (roleToRemove) {
-      setSelectedRoleIds((prev) =>
-        prev.filter((id) => id !== roleToRemove.id.toString())
-      );
-      setRoles((prev) => prev.filter((r) => r !== roleToRemove.role_name));
-    }
+  const handleRemoveRole = () => {
+    setSelectedRoleIds([]);
+    setRoles([]);
   };
 
 
@@ -142,7 +134,7 @@ export default function AllDocTable({ params }: Props) {
     if (!lastName.trim()) newErrors.last_name = "Last name is required.";
     if (!mobileNumber.trim()) newErrors.mobile_no = "Mobile number is required.";
     if (!email.trim()) newErrors.email = "Email is required.";
-    if (!JSON.stringify(selectedRoleIds)) newErrors.role = "At least select one role.";
+    if (selectedRoleIds.length === 0) newErrors.role = "Role is required.";
     if (!selectedSectorId) newErrors.sector = "Sector is required.";
     return newErrors;
   };
@@ -161,7 +153,7 @@ export default function AllDocTable({ params }: Props) {
     formData.append("email", email);
     formData.append("role", JSON.stringify(selectedRoleIds));
     formData.append("sector", selectedSectorId);
-    
+
     try {
       const response = await postWithAuth(`user-details/${id}`, formData);
       if (response.status === "fail") {
@@ -260,7 +252,7 @@ export default function AllDocTable({ params }: Props) {
                 <div className="mb-3 pe-lg-4">
                   <DropdownButton
                     id="dropdown-category-button"
-                    title={roles.length > 0 ? roles.join(", ") : "Select Roles"}
+                    title={roles.length > 0 ? roles[0] : "Select Role"}
                     className="custom-dropdown-text-start text-start w-100"
                     onSelect={(value) => {
                       if (value) handleRoleSelect(value);
@@ -291,7 +283,7 @@ export default function AllDocTable({ params }: Props) {
                           <IoClose
                             className="ms-2"
                             style={{ cursor: "pointer" }}
-                            onClick={() => handleRemoveRole(role.id.toString())} // Pass role.id here
+                            onClick={() => handleRemoveRole()} // Pass role.id here
                           />
                         </span>
                       ) : null;
@@ -306,37 +298,37 @@ export default function AllDocTable({ params }: Props) {
                 </p>
                 <div className="d-flex flex-column position-relative">
                   <DropdownButton
-                  id="dropdown-category-button"
-                  title={
-                    selectedSectorId
-                      ? sectorDropDownData.find(
-                        (item) => item.id.toString() === selectedSectorId
-                      )?.sector_name
-                      : "Select Sector"
-                  }
-                  className="custom-dropdown-text-start text-start w-100"
-                  onSelect={(value) => handleSectorSelect(value || "")}
-                >
-                  {sectorDropDownData.map((sector) => (
-                    <Dropdown.Item
-                      key={sector.id}
-                      eventKey={sector.id.toString()}
-                      style={{
-                        fontWeight:
-                          sector.parent_sector === "none"
-                            ? "bold"
-                            : "normal",
-                        paddingLeft:
-                          sector.parent_sector === "none"
-                            ? "10px"
-                            : "20px",
-                      }}
-                    >
-                      {sector.sector_name}
-                    </Dropdown.Item>
-                  ))}
-                </DropdownButton>
-                {errors.sector && <div style={{ color: "red", fontSize: "12px" }}>{errors.sector}</div>}
+                    id="dropdown-category-button"
+                    title={
+                      selectedSectorId
+                        ? sectorDropDownData.find(
+                          (item) => item.id.toString() === selectedSectorId
+                        )?.sector_name
+                        : "Select Sector"
+                    }
+                    className="custom-dropdown-text-start text-start w-100"
+                    onSelect={(value) => handleSectorSelect(value || "")}
+                  >
+                    {sectorDropDownData.map((sector) => (
+                      <Dropdown.Item
+                        key={sector.id}
+                        eventKey={sector.id.toString()}
+                        style={{
+                          fontWeight:
+                            sector.parent_sector === "none"
+                              ? "bold"
+                              : "normal",
+                          paddingLeft:
+                            sector.parent_sector === "none"
+                              ? "10px"
+                              : "20px",
+                        }}
+                      >
+                        {sector.sector_name}
+                      </Dropdown.Item>
+                    ))}
+                  </DropdownButton>
+                  {errors.sector && <div style={{ color: "red", fontSize: "12px" }}>{errors.sector}</div>}
                 </div>
               </div>
               <div className="d-flex"></div>
