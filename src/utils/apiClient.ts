@@ -4,9 +4,9 @@ import Cookies from "js-cookie";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://dms.genaitech.dev/api/";
-  // process.env.NEXT_PUBLIC_API_BASE_URL ||
-  // "http://localhost:8000/api/";
+  "https://dms1.genaitech.dev/api/";
+// process.env.NEXT_PUBLIC_API_BASE_URL ||
+// "http://localhost:8000/api/";
 
 if (!API_BASE_URL) {
   throw new Error("API base URL is not defined in environment variables.");
@@ -75,7 +75,7 @@ export async function postWithAuthXML(
       onProgress(progress, formData.get("upload_file")?.toString() || "Unknown");
     }
   };
-  
+
 
   try {
     return new Promise((resolve, reject) => {
@@ -140,7 +140,7 @@ export async function deleteWithAuth(endpoint: string): Promise<any> {
     });
 
     const rawResponse = await response.text();
-  
+
     return JSON.parse(rawResponse);
   } catch (error) {
     console.error("Error during GET request:", error);
