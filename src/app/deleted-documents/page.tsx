@@ -140,7 +140,7 @@ export default function AllDocTable() {
       console.error("Invalid document ID");
       return;
     }
-    // https://sites.techvoice.lk/dms-backend-v2/api/restore-deleted-document/151
+    // https://kodetech.co/dms-backend-v2/api/restore-deleted-document/151
     try {
       const response = await getWithAuth(`restore-deleted-document/${selectedDocumentId}`);
       // console.log("document deleted successfully:", response);

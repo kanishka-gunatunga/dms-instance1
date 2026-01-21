@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost', 'sites.techvoice.lk', 'dms1.genaitech.dev'],
+    domains: ['localhost', 'kodetech.co', 'dms1.genaitech.dev'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'sites.techvoice.lk',
+        hostname: 'kodetech.co',
         pathname: '/dms-backend/public/uploads/**',
       },
       {
