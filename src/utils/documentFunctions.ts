@@ -17,6 +17,15 @@ export const handleView = async (id: number, userId: any) => {
   }
 };
 
+export const handleViewOldDocument = async (versionDocumentId: string) => {
+  try {
+    const response = await getWithAuth(`view-old-document/${versionDocumentId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error viewing old document:", error);
+    return null;
+  }
+};
 
 // export const handleDownload = async (id: number, userId: any) => {
 //   try {
