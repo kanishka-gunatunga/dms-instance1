@@ -49,7 +49,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     const columns: TableProps<AssignedDocument>['columns'] = [
         {
-            title: 'Document',
+            title: 'DOCUMENT',
             dataIndex: 'document_name',
             key: 'document_name',
             render: (text, record) => (
@@ -66,13 +66,13 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             ),
         },
         {
-            title: 'Category',
+            title: 'CATEGORY',
             dataIndex: 'category_name',
             key: 'category_name',
             render: (category) => <Tag>{category}</Tag>,
         },
         {
-            title: 'Due Date',
+            title: 'DUE DATE',
             dataIndex: 'expiration_date',
             key: 'expiration_date',
             render: (dueDate) => {
@@ -90,7 +90,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             },
         },
         {
-            title: 'Actions',
+            title: 'ACTIONS',
             key: 'actions',
             align: 'left',
             render: (_, record) => (
@@ -188,15 +188,42 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     return (
         <>
-            <div className="bg-white calendarWrapper h-100">
+            <div className="bg-white h-100 calendarWrapper">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div className="d-flex align-items-center gap-2">
-                        <Image src="/jam_document.svg" alt="icon document" width={24} height={24}/>
-                        <h5 className="mb-0" style={{color: "#0A0A0A", fontSize: "16px", fontFamily: "Arial"}}>My
-                            Assigned
-                            Files</h5>
-                        <Tag style={{color: "#EA580C"}}>{documents.length} files</Tag>
-                        <Tag color="#EA580C">{newFilesCount} new</Tag>
+                    <div className="d-flex align-items-center gap-3">
+                        <div style={{
+                            background: "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)",
+                            padding: "10px",
+                            borderRadius: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                        }}>
+                            <Image src="/jam_document.svg" alt="icon document" width={24} height={24}/>
+                        </div>
+                        <div>
+                            <h5 className="mb-1" style={{color: "#111827", fontSize: "18px", fontWeight: 600, marginBottom: "4px"}}>My Assigned Files</h5>
+                            <div className="d-flex gap-2 align-items-center">
+                                <Tag style={{
+                                    color: "#EA580C",
+                                    background: "#FFF4E8",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    padding: "4px 10px",
+                                    fontWeight: 500
+                                }}>{documents.length} files</Tag>
+                                {newFilesCount > 0 && (
+                                    <Tag style={{
+                                        color: "#10B981",
+                                        background: "#D1FAE5",
+                                        border: "none",
+                                        borderRadius: "6px",
+                                        padding: "4px 10px",
+                                        fontWeight: 500
+                                    }}>{newFilesCount} new</Tag>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     <Link href="/assigned-documents">
                         <Button type="text" style={{

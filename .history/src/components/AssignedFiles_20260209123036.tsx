@@ -49,7 +49,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     const columns: TableProps<AssignedDocument>['columns'] = [
         {
-            title: 'Document',
+            title: 'DOCUMENT',
             dataIndex: 'document_name',
             key: 'document_name',
             render: (text, record) => (
@@ -66,13 +66,13 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             ),
         },
         {
-            title: 'Category',
+            title: 'CATEGORY',
             dataIndex: 'category_name',
             key: 'category_name',
             render: (category) => <Tag>{category}</Tag>,
         },
         {
-            title: 'Due Date',
+            title: 'DUE DATE',
             dataIndex: 'expiration_date',
             key: 'expiration_date',
             render: (dueDate) => {
@@ -90,7 +90,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             },
         },
         {
-            title: 'Actions',
+            title: 'ACTIONS',
             key: 'actions',
             align: 'left',
             render: (_, record) => (
@@ -188,7 +188,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     return (
         <>
-            <div className="bg-white calendarWrapper h-100">
+            <div className="bg-white h-100 calendarWrapper">
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div className="d-flex align-items-center gap-2">
                         <Image src="/jam_document.svg" alt="icon document" width={24} height={24}/>
@@ -200,11 +200,23 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                     </div>
                     <Link href="/assigned-documents">
                         <Button type="text" style={{
-                            color: "#1A1A1A",
-                            padding: "4px 10px",
-                            border: "1px solid #E5E7EB",
-                            borderRadius: "5px"
-                        }}>View All</Button>
+                            color: "#3B82F6",
+                            padding: "8px 16px",
+                            border: "1px solid #DBEAFE",
+                            borderRadius: "8px",
+                            fontWeight: 500,
+                            background: "#EFF6FF",
+                            transition: "all 0.2s ease"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#DBEAFE";
+                            e.currentTarget.style.borderColor = "#3B82F6";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#EFF6FF";
+                            e.currentTarget.style.borderColor = "#DBEAFE";
+                        }}
+                        >View All</Button>
                     </Link>
                 </div>
 

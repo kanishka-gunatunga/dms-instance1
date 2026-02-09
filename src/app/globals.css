@@ -21,6 +21,48 @@ body {
   margin: 0;
 }
 
+/* Hide scrollbars but keep scrolling functionality */
+.custom-scroll,
+.custom-scroll * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.custom-scroll::-webkit-scrollbar,
+.custom-scroll *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbars for navbarAside sidebar */
+.navbarAside {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.navbarAside::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbars for main content containers */
+.container-fluid,
+[style*="overflowY: scroll"],
+[style*="overflow-y: scroll"] {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.container-fluid::-webkit-scrollbar,
+[style*="overflowY: scroll"]::-webkit-scrollbar,
+[style*="overflow-y: scroll"]::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
 a {
   color: inherit;
   text-decoration: none !important;
@@ -28,21 +70,42 @@ a {
 
 .navbarAside .nav-link {
   font-size: 14px !important;
-  color: #333 !important;
+  color: #6B7280 !important;
+  text-decoration: none !important;
+}
+
+.navbarAside .nav-link:hover:not(.active-nav-item) {
+  background-color: rgba(232, 237, 249, 0.5) !important;
+  transition: background-color 0.2s ease;
+}
+
+.navbarAside .nav-link.active-nav-item {
+  background-color: #FFF4E8 !important;
+  color: #EA580C !important;
 }
 
 .navbarAside .nav {
   flex-wrap: nowrap !important;
 }
 
-.navbarAside a svg {
-  color: #495584 !important;
+.navbarAside .nav-link svg {
+  color: #6B7280 !important;
   font-size: 18px !important;
 }
 
-.navbarAside a span {
-  color: #333 !important;
+.navbarAside .nav-link.active-nav-item svg,
+.navbarAside .nav-link.active-nav-item svg * {
+  color: #EA580C !important;
+}
+
+.navbarAside .nav-link span {
+  color: #6B7280 !important;
   font-size: 14px !important;
+}
+
+.navbarAside .nav-link.active-nav-item span,
+.navbarAside .nav-link.active-nav-item {
+  color: #EA580C !important;
 }
 
 .loginButton {
@@ -908,13 +971,23 @@ iframe #WordViewerStatusBar {
 
 /*-----------------------*/
 
-.navbarAside a span {
-    color: #8B4513 !important;
+.navbarAside .nav-link span {
+    color: #6B7280 !important;
     font-size: 14px !important;
 }
 
-.navbarAside a svg {
-    color: #8B4513 !important;
+.navbarAside .nav-link svg {
+    color: #6B7280 !important;
+}
+
+.navbarAside .nav-link.active-nav-item span,
+.navbarAside .nav-link.active-nav-item {
+    color: #EA580C !important;
+}
+
+.navbarAside .nav-link.active-nav-item svg,
+.navbarAside .nav-link.active-nav-item svg * {
+    color: #EA580C !important;
 }
 
 
@@ -966,7 +1039,7 @@ iframe #WordViewerStatusBar {
 /* Main container for the entire component */
 .calendarWrapper {
     background-color: white !important;
-    padding: 1rem 1.5rem !important;
+    padding: 1.5rem !important;
     border-radius: 1.25rem !important;
     /*box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);*/
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
@@ -1094,6 +1167,24 @@ iframe #WordViewerStatusBar {
 :global(.statCard) {
     border-radius: 1.25rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background-color: #FFFFFF !important;
+}
+
+/* Ensure all card components have white backgrounds */
+.card.statCard {
+    background-color: #FFFFFF !important;
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: none;
+}
+
+/* Calendar wrapper components - white background with shadow */
+.calendarWrapper {
+    background-color: #FFFFFF !important;
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 
@@ -1140,6 +1231,58 @@ iframe #WordViewerStatusBar {
     margin-top: -50px;
 }
 
+
+/* Calendar toggle button (Month/Year view switcher) */
+.ant-picker-calendar-header .ant-radio-button-wrapper-checked,
+.ant-picker-calendar-header .ant-radio-button-wrapper-checked:hover,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar-header .ant-radio-button-wrapper-checked,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar-header .ant-radio-button-wrapper-checked:hover {
+    color: #EA580C !important;
+    border-color: #EA580C !important;
+    background: #FFF4E8 !important;
+}
+
+.ant-picker-calendar-header .ant-radio-button-wrapper-checked::before {
+    background-color: #EA580C !important;
+}
+
+.ant-picker-calendar-header .ant-radio-button-wrapper:hover {
+    color: #EA580C !important;
+    border-color: #EA580C !important;
+}
+
+
+/* Calendar navigation buttons (prev/next) */
+.ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-prev-btn:hover,
+.ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-next-btn:hover,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-prev-btn:hover,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-next-btn:hover,
+.ant-picker-calendar-header .ant-picker-calendar-prev-btn:hover,
+.ant-picker-calendar-header .ant-picker-calendar-next-btn:hover {
+    color: #EA580C !important;
+}
+
+.ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-prev-btn:focus,
+.ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-next-btn:focus,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-prev-btn:focus,
+:where(.css-dev-only-do-not-override-49qm).ant-picker-calendar .ant-picker-calendar-header .ant-picker-calendar-next-btn:focus,
+.ant-picker-calendar-header .ant-picker-calendar-prev-btn:focus,
+.ant-picker-calendar-header .ant-picker-calendar-next-btn:focus {
+    color: #EA580C !important;
+}
+
 /*:where(.css-dev-only-do-not-override-49qm).ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {*/
 /*    color: #CA3500;*/
 /*}*/
+
+
+/* Global radio button checked state in calendar */
+.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+    color: #EA580C !important;
+    border-color: #EA580C !important;
+    background: #FFF4E8 !important;
+}
+
+.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)::before {
+    background-color: #EA580C !important;
+}

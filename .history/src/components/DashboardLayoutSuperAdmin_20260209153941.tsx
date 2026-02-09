@@ -272,6 +272,7 @@ const DashboardLayoutSuperAdmin: React.FC<{ children: React.ReactNode }> = ({
                       if (item.subItems) {
                         if (isSidebarCollapsed) {
                           setIsSidebarCollapsed(false);
+                          // Small delay to ensure sidebar expands before toggling submenu
                           setTimeout(() => {
                             if (!expandedGroups[item.name]) {
                               toggleGroup(item.name);

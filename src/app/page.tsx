@@ -401,12 +401,11 @@ export default function Home() {
         <div className={styles.page}>
             <DashboardLayout>
                 <div
-                    className="d-flex flex-column custom-scroll"
+                    className="d-flex flex-column custom-scroll gap-3"
                     style={{minHeight: "100vh", maxHeight: "100%", overflowY: "scroll"}}
                 >
                     <div
-                        className="d-flex flex-column rounded mb-3"
-                        style={{marginTop: "12px"}}
+                        className="d-flex flex-column rounded"
                     >
                         {isAdmin === 1 && adminData && (
                             // <div className="d-flex flex-row align-items-center justify-content-between gap-1">
@@ -477,8 +476,8 @@ export default function Home() {
                     {/*</div>*/}
 
                     {isAdmin === 1 && (
-                        <div className="py-4">
-                            <div className="row g-4">
+                        <div>
+                            <div className="row g-3">
                                 <div className="col-12 col-lg-6">
                                     <PieChartCard
                                         title="Documents by Category"
@@ -498,16 +497,15 @@ export default function Home() {
                         </div>
                     )}
                     {isAdmin === 0 && userData && (
-                        <div className="py-4">
-
-                            <div className="row g-4">
+                        <div>
+                            <div className="row g-3 align-items-stretch">
 
                                 <div className="col-12 col-lg-8">
                                     <AssignedFiles documents={userData.assigned_documents} userId={userId}/>
                                 </div>
 
                                 <div className="col-12 col-lg-4">
-                                    <div className="d-flex flex-column gap-4">
+                                    <div className="d-flex flex-column gap-3 h-100">
                                         <MySector sectorName={userData.sector_name}
                                                   userCount={userData.sector_user_count}
                                                   documentCount={userData.sector_document_count}/>

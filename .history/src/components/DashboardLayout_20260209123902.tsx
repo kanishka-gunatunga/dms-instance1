@@ -427,109 +427,59 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                             height: "100svh",
                             overflowY: "scroll",
                             overflowX: "hidden",
-                            padding: "16px 0px 80px 12px",
+                            padding: "16px 12px",
                         }}
                     >
 
                         <div className="d-flex flex-column mb-4">
-                            {!isSidebarCollapsed && (
-                                <div className="px-3 mb-4 d-flex flex-row justify-content-between align-items-center" style={{paddingTop: "8px"}}>
-                                    <h1 className="d-block"
-                                        style={{fontSize: "12px", fontWeight: 600, color: "#9CA3AF", marginBottom: 0, letterSpacing: "0.5px", textTransform: "uppercase"}}>MENU</h1>
-                                    <button 
-                                        style={{
-                                            border: "none", 
-                                            background: "transparent",
-                                            cursor: "pointer",
-                                            padding: "6px",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            borderRadius: "6px",
-                                            transition: "background-color 0.2s ease"
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                        onClick={toggleSidebar}
-                                    >
+                            <div className="px-3 mb-4 d-flex flex-row justify-content-between align-items-center" style={{paddingTop: "8px"}}>
+                                <h1 className={`${isSidebarCollapsed ? "d-none" : "d-block"}`}
+                                    style={{fontSize: "12px", fontWeight: 600, color: "#9CA3AF", marginBottom: 0, letterSpacing: "0.5px", textTransform: "uppercase"}}>Menu</h1>
+                                <button 
+                                    style={{
+                                        border: "none", 
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        padding: "6px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "6px",
+                                        transition: "background-color 0.2s ease"
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                    onClick={toggleSidebar}
+                                >
+                                    {isSidebarCollapsed ? <AiOutlineMenu size={20} color="#6B7280"/> :
                                         <Image src="/sidebar-arrow.svg" alt="" width={18} height={18}
-                                               className="h-1 w-1"/>
-                                    </button>
-                                </div>
-                            )}
-                            {isSidebarCollapsed && (
-                                <div>
-                                    <button 
-                                        className="d-flex align-items-center"
-                                        style={{
-                                            border: "none", 
-                                            background: "transparent",
-                                            cursor: "pointer",
-                                            padding: "12px 0px 12px 16px",
-                                            marginBottom: "0px",
-                                            borderRadius: "0px",
-                                            transition: "all 0.2s ease",
-                                            width: "100%",
-                                            minHeight: "44px",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "flex-start",
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                        onClick={toggleSidebar}
-                                    >
-                                        <span style={{
-                                            color: "#6B7280",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontSize: "20px"
-                                        }}>
-                                            <AiOutlineMenu size={20} color="#6B7280"/>
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
+                                               className="h-1 w-1"/>}
+                                </button>
+                            </div>
                             {filteredNavItems.map((item, index) => {
-                                const hasActiveSubItem = item.subItems?.some(subItem => isActiveRoute(subItem.url));
                                 const isActive = !item.subItems && isActiveRoute(item.url);
-                                const isParentActive = item.subItems && hasActiveSubItem;
                                 return (
                                 <div key={index}>
                                     <Nav.Link
-                                        onClick={() => {
-                                            if (item.subItems) {
-                                                if (isSidebarCollapsed) {
-                                                    setIsSidebarCollapsed(false);
-                                                    setTimeout(() => {
-                                                        if (!expandedGroups[item.name]) {
-                                                            toggleGroup(item.name);
-                                                        }
-                                                    }, 100);
-                                                } else {
-                                                    toggleGroup(item.name);
-                                                }
-                                            }
-                                        }}
+                                        onClick={() =>
+                                            item.subItems ? toggleGroup(item.name) : null
+                                        }
                                         href={item.subItems ? undefined : item.url}
-                                        className={`d-flex align-items-center justify-content-between ${isActive || isParentActive ? "active-nav-item" : ""}`}
+                                        className={`d-flex align-items-center justify-content-between ${isActive ? "active-nav-item" : ""}`}
                                         style={{
-                                            backgroundColor: isActive || isParentActive ? "#FFF4E8" : "transparent",
-                                            borderRadius: "0px",
-                                            padding: "12px 0px 12px 16px",
-                                            marginBottom: "0px",
+                                            backgroundColor: isActive ? "#E8EDF9" : "transparent",
+                                            borderRadius: "10px",
+                                            padding: "12px 16px",
+                                            marginBottom: "6px",
                                             transition: "all 0.2s ease",
                                             minHeight: "44px",
                                             display: "flex",
                                             alignItems: "center",
-                                            borderRight: isActive || isParentActive ? "4px solid #EA580C" : "4px solid transparent",
-                                            position: "relative",
                                         }}
                                     >
                                         <div className="d-flex align-items-center" style={{flex: 1}}>
                                             <span style={{
-                                                color: isActive || isParentActive ? "#EA580C" : "#6B7280",
+                                                color: isActive ? "#1E40AF" : "#6B7280",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "center",
@@ -541,8 +491,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                                             <span
                                                 className={isSidebarCollapsed ? "d-none" : ""}
                                                 style={{
-                                                    color: isActive || isParentActive ? "#EA580C" : "#6B7280",
-                                                    fontWeight: isActive || isParentActive ? 600 : 400,
+                                                    color: isActive ? "#1A1A1A" : "#4B5563",
+                                                    fontWeight: isActive ? 600 : 400,
                                                     fontSize: "14px",
                                                     lineHeight: "1.5",
                                                     display: "flex",
@@ -552,18 +502,18 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                         {item.name}
                       </span>
                                         </div>
-                                        {item.subItems && !isSidebarCollapsed &&
+                                        {item.subItems &&
                                             (expandedGroups[item.name] ? (
-                                                <FiMinus size={18} color={isActive || isParentActive ? "#EA580C" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
+                                                <FiMinus size={18} color={isActive ? "#1E40AF" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
                                             ) : (
-                                                <FiPlus size={18} color={isActive || isParentActive ? "#EA580C" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
+                                                <FiPlus size={18} color={isActive ? "#1E40AF" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
                                             ))}
                                     </Nav.Link>
 
                                     <div
                                         className="submenu"
                                         style={{
-                                            height: expandedGroups[item.name] && !isSidebarCollapsed
+                                            height: expandedGroups[item.name]
                                                 ? `${item.subItems?.length
                                                     ? item.subItems.length * 40
                                                     : 0
@@ -583,21 +533,20 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                                                         href={subItem.url}
                                                         className={`d-flex align-items-center ${isSubActive ? "active-nav-item" : ""}`}
                                                         style={{
-                                                            backgroundColor: isSubActive ? "#FFF4E8" : "transparent",
-                                                            borderRadius: "0px",
-                                                            padding: "10px 0px 10px 40px",
-                                                            marginBottom: "0px",
+                                                            backgroundColor: isSubActive ? "#E8EDF9" : "transparent",
+                                                            borderRadius: "10px",
+                                                            padding: "10px 16px 10px 40px",
+                                                            marginBottom: "4px",
                                                             minHeight: "40px",
                                                             display: "flex",
                                                             alignItems: "center",
                                                             transition: "all 0.2s ease",
-                                                            borderRight: isSubActive ? "4px solid #EA580C" : "4px solid transparent",
                                                         }}
                                                     >
                             <span
                                 className={isSidebarCollapsed ? "d-none" : ""}
                                 style={{
-                                    color: isSubActive ? "#EA580C" : "#6B7280",
+                                    color: isSubActive ? "#1A1A1A" : "#4B5563",
                                     fontWeight: isSubActive ? 600 : 400,
                                     fontSize: "14px",
                                     lineHeight: "1.5",
@@ -672,40 +621,34 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                             height: "100svh",
                             overflowY: "scroll",
                             overflowX: "hidden",
-                            padding: "16px 0px 80px 12px",
+                            padding: "16px 12px",
                         }}
                     >
                         <div className="d-flex flex-column mb-4">
                             {filteredNavItems.map((item, index) => {
-                                const hasActiveSubItem = item.subItems?.some(subItem => isActiveRoute(subItem.url));
                                 const isActive = !item.subItems && isActiveRoute(item.url);
-                                const isParentActive = item.subItems && hasActiveSubItem;
                                 return (
                                 <div key={index}>
                                     <Nav.Link
-                                        onClick={() => {
-                                            if (item.subItems) {
-                                                toggleGroup(item.name);
-                                            }
-                                        }}
+                                        onClick={() =>
+                                            item.subItems ? toggleGroup(item.name) : null
+                                        }
                                         href={item.subItems ? undefined : item.url}
-                                        className={`d-flex align-items-center justify-content-between ${isActive || isParentActive ? "active-nav-item" : ""}`}
+                                        className={`d-flex align-items-center justify-content-between ${isActive ? "active-nav-item" : ""}`}
                                         style={{
-                                            backgroundColor: isActive || isParentActive ? "#FFF4E8" : "transparent",
-                                            borderRadius: "0px",
-                                            padding: "12px 0px 12px 16px",
-                                            marginBottom: "0px",
+                                            backgroundColor: isActive ? "#E8EDF9" : "transparent",
+                                            borderRadius: "10px",
+                                            padding: "12px 16px",
+                                            marginBottom: "6px",
                                             transition: "all 0.2s ease",
                                             minHeight: "44px",
                                             display: "flex",
                                             alignItems: "center",
-                                            borderRight: isActive || isParentActive ? "4px solid #EA580C" : "4px solid transparent",
-                                            position: "relative",
                                         }}
                                     >
                                         <div className="d-flex align-items-center" style={{flex: 1}}>
                                             <span style={{
-                                                color: isActive || isParentActive ? "#EA580C" : "#6B7280",
+                                                color: isActive ? "#1E40AF" : "#6B7280",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "center",
@@ -715,9 +658,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                                                 {item.icon}
                                             </span>
                                             <span
+                                                className={isSidebarCollapsed ? "d-none" : ""}
                                                 style={{
-                                                    color: isActive || isParentActive ? "#EA580C" : "#6B7280",
-                                                    fontWeight: isActive || isParentActive ? 600 : 400,
+                                                    color: isActive ? "#1A1A1A" : "#4B5563",
+                                                    fontWeight: isActive ? 600 : 400,
                                                     fontSize: "14px",
                                                     lineHeight: "1.5",
                                                     display: "flex",
@@ -729,9 +673,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                                         </div>
                                         {item.subItems &&
                                             (expandedGroups[item.name] ? (
-                                                <FiMinus size={18} color={isActive || isParentActive ? "#EA580C" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
+                                                <FiMinus size={18} color={isActive ? "#1E40AF" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
                                             ) : (
-                                                <FiPlus size={18} color={isActive || isParentActive ? "#EA580C" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
+                                                <FiPlus size={18} color={isActive ? "#1E40AF" : "#9CA3AF"} style={{display: "flex", alignItems: "center"}}/>
                                             ))}
                                     </Nav.Link>
 
@@ -759,21 +703,20 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                                                         href={subItem.url}
                                                         className={`d-flex align-items-center ${isSubActive ? "active-nav-item" : ""}`}
                                                         style={{
-                                                            backgroundColor: isSubActive ? "#FFF4E8" : "transparent",
-                                                            borderRadius: "0px",
-                                                            padding: "10px 0px 10px 40px",
-                                                            marginBottom: "0px",
+                                                            backgroundColor: isSubActive ? "#E8EDF9" : "transparent",
+                                                            borderRadius: "10px",
+                                                            padding: "10px 16px 10px 40px",
+                                                            marginBottom: "4px",
                                                             minHeight: "40px",
                                                             display: "flex",
                                                             alignItems: "center",
                                                             transition: "all 0.2s ease",
-                                                            borderRight: isSubActive ? "4px solid #EA580C" : "4px solid transparent",
                                                         }}
                                                     >
                             <span
                                 className={isSidebarCollapsed ? "d-none" : ""}
                                 style={{
-                                    color: isSubActive ? "#EA580C" : "#6B7280",
+                                    color: isSubActive ? "#1A1A1A" : "#4B5563",
                                     fontWeight: isSubActive ? 600 : 400,
                                     fontSize: "14px",
                                     lineHeight: "1.5",

@@ -677,6 +677,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                     >
                         <div className="d-flex flex-column mb-4">
                             {filteredNavItems.map((item, index) => {
+                                // Check if any subItem is active
                                 const hasActiveSubItem = item.subItems?.some(subItem => isActiveRoute(subItem.url));
                                 const isActive = !item.subItems && isActiveRoute(item.url);
                                 const isParentActive = item.subItems && hasActiveSubItem;

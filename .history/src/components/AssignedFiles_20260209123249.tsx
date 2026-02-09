@@ -1,20 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, {useEffect, useState} from 'react';
-import {Button, Tag, Table} from 'antd';
-import type {TableProps} from 'antd';
-import {BsEye, BsDownload} from 'react-icons/bs';
+import React, { useEffect, useState } from 'react';
+import { Button, Tag, Table } from 'antd';
+import type { TableProps } from 'antd';
+import { BsEye, BsDownload } from 'react-icons/bs';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import Image from "next/image";
-import {handleDownload} from "@/utils/documentFunctions";
+import { handleDownload } from "@/utils/documentFunctions";
 import Link from "next/link";
-import {useUserContext} from "@/context/userContext";
-import {getWithAuth} from "@/utils/apiClient";
-import {Modal} from "react-bootstrap";
-import {IoClose} from "react-icons/io5";
-import {MdOutlineCancel} from "react-icons/md";
+import { useUserContext } from "@/context/userContext";
+import { getWithAuth } from "@/utils/apiClient";
+import { Modal } from "react-bootstrap";
+import { IoClose } from "react-icons/io5";
+import { MdOutlineCancel } from "react-icons/md";
 // import styles from '../styles/AssignedFiles.module.css';
 
 dayjs.extend(relativeTime);
@@ -45,34 +45,34 @@ interface ViewDocumentItem {
     enable_external_file_view: number
 }
 
-const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
+const AssignedFiles: React.FC<AssignedFilesProps> = ({ documents, userId }) => {
 
     const columns: TableProps<AssignedDocument>['columns'] = [
         {
-            title: 'Document',
+            title: 'DOCUMENT',
             dataIndex: 'document_name',
             key: 'document_name',
             render: (text, record) => (
                 <div>
                     <div className="d-flex align-items-center gap-2">
-                        <h6 className="mb-0" style={{color: "#1A1A1A", fontSize: "14px"}}>{text}</h6>
+                        <h6 className="mb-0" style={{ color: "#1A1A1A", fontSize: "14px" }}>{text}</h6>
                         {record.is_new === 1 && <Tag color="#EA580C">NEW</Tag>}
                     </div>
                     <small className="text-muted">
                         ID: {record.id} • {' '} <span
-                        style={{color: "#EA580C"}}> Assigned {record.days_since_added} days ago</span>
+                            style={{ color: "#EA580C" }}> Assigned {record.days_since_added} days ago</span>
                     </small>
                 </div>
             ),
         },
         {
-            title: 'Category',
+            title: 'CATEGORY',
             dataIndex: 'category_name',
             key: 'category_name',
             render: (category) => <Tag>{category}</Tag>,
         },
         {
-            title: 'Due Date',
+            title: 'DUE DATE',
             dataIndex: 'expiration_date',
             key: 'expiration_date',
             render: (dueDate) => {
@@ -80,7 +80,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                 const daysLeft = dayjs(dueDate).diff(dayjs(), 'day');
                 return (
                     <div>
-                        <div className="" style={{color: "#1A1A1A", fontSize: "14px"}}>{dueDate}</div>
+                        <div className="" style={{ color: "#1A1A1A", fontSize: "14px" }}>{dueDate}</div>
                         {/*<small className="text-muted">{daysLeft} days left</small>*/}
                         <small className={daysLeft < 0 ? 'text-danger fw-bold' : 'text-muted'}>
                             {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`}
@@ -90,16 +90,16 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             },
         },
         {
-            title: 'Actions',
+            title: 'ACTIONS',
             key: 'actions',
             align: 'left',
             render: (_, record) => (
                 <div>
-                    <Button type="text" shape="circle" icon={<BsEye/>} onClick={() =>
+                    <Button type="text" shape="circle" icon={<BsEye />} onClick={() =>
                         handleOpenModal("viewModel", record.id, record.document_name)
-                    }/>
-                    <Button type="text" shape="circle" icon={<BsDownload/>}
-                            onClick={() => handleDownload(record.id, userId)}/>
+                    } />
+                    <Button type="text" shape="circle" icon={<BsDownload />}
+                        onClick={() => handleDownload(record.id, userId)} />
                 </div>
             ),
         },
@@ -142,7 +142,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
         deleteBulkFileModel: false,
     });
 
-    const {userName} = useUserContext();
+    const { userName } = useUserContext();
 
     const newFilesCount = documents.filter(doc => doc.is_new === 1).length;
 
@@ -170,7 +170,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
     };
 
     const handleCloseModal = (modalName: keyof typeof modalStates) => {
-        setModalStates((prev) => ({...prev, [modalName]: false}));
+        setModalStates((prev) => ({ ...prev, [modalName]: false }));
     };
 
     const handleOpenModal = (
@@ -181,22 +181,49 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
         if (documentId) setSelectedDocumentId(documentId);
         if (documentName) setSelectedDocumentName(documentName);
 
-        setModalStates((prev) => ({...prev, [modalName]: true}));
+        setModalStates((prev) => ({ ...prev, [modalName]: true }));
     };
 
     const currentDateTime = new Date().toLocaleString();
 
     return (
         <>
-            <div className="bg-white calendarWrapper h-100">
+            <div className="bg-white h-100 calendarWrapper">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div className="d-flex align-items-center gap-2">
-                        <Image src="/jam_document.svg" alt="icon document" width={24} height={24}/>
-                        <h5 className="mb-0" style={{color: "#0A0A0A", fontSize: "16px", fontFamily: "Arial"}}>My
-                            Assigned
-                            Files</h5>
-                        <Tag style={{color: "#EA580C"}}>{documents.length} files</Tag>
-                        <Tag color="#EA580C">{newFilesCount} new</Tag>
+                    <div className="d-flex align-items-center gap-3">
+                        <div style={{
+                            background: "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)",
+                            padding: "10px",
+                            borderRadius: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                        }}>
+                            <Image src="/jam_document.svg" alt="icon document" width={24} height={24} />
+                        </div>
+                        <div>
+                            <h5 className="mb-1" style={{ color: "#111827", fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>My Assigned Files</h5>
+                            <div className="d-flex gap-2 align-items-center">
+                                <Tag style={{
+                                    color: "#EA580C",
+                                    background: "#FFF4E8",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    padding: "4px 10px",
+                                    fontWeight: 500
+                                }}>{documents.length} files</Tag>
+                                {newFilesCount > 0 && (
+                                    <Tag style={{
+                                        color: "#10B981",
+                                        background: "#D1FAE5",
+                                        border: "none",
+                                        borderRadius: "6px",
+                                        padding: "4px 10px",
+                                        fontWeight: 500
+                                    }}>{newFilesCount} new</Tag>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     <Link href="/assigned-documents">
                         <Button type="text" style={{
@@ -218,12 +245,12 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                 />
 
                 <div className="d-flex justify-content-between align-items-center mt-4"
-                     style={{fontSize: "14px", borderTop: "1px solid #E5E7EB", paddingTop: "10px", marginTop: "10px"}}>
-                    <small className="text-muted" style={{color: "#6B7280"}}>Showing {documents.length} assigned
+                    style={{ fontSize: "14px", borderTop: "1px solid #E5E7EB", paddingTop: "10px", marginTop: "10px" }}>
+                    <small className="text-muted" style={{ color: "#6B7280" }}>Showing {documents.length} assigned
                         files {newFilesCount > 0 &&
-                            <span style={{color: "#EA580C"}}> ({newFilesCount} newly assigned)</span>}</small>
+                            <span style={{ color: "#EA580C" }}> ({newFilesCount} newly assigned)</span>}</small>
                     <Link href="/assigned-documents">
-                        <Button type="text" style={{color: "#EA580C"}}>Load More Files</Button>
+                        <Button type="text" style={{ color: "#EA580C" }}>Load More Files</Button>
                     </Link>
                 </div>
             </div>
@@ -241,14 +268,14 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                 <Modal.Header>
                     <div className="d-flex w-100 justify-content-end">
                         <div className="col-11 d-flex flex-row">
-                            <p className="mb-0" style={{fontSize: "16px", color: "#333"}}>
+                            <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
                                 View Document : {viewDocument?.name || ""}
                             </p>
                         </div>
                         <div className="col-1 d-flex  justify-content-end">
                             <IoClose
                                 fontSize={20}
-                                style={{cursor: "pointer"}}
+                                style={{ cursor: "pointer" }}
                                 onClick={() => {
                                     handleCloseModal("viewModel");
                                     // setMetaTags([])
@@ -263,28 +290,28 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                             <>
                                 {/* Image Preview */}
                                 {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
-                                        <Image
-                                            src={viewDocument.url}
-                                            alt={viewDocument.name}
-                                            width={600}
-                                            height={600}
-                                        />
-                                    ) :
+                                    <Image
+                                        src={viewDocument.url}
+                                        alt={viewDocument.name}
+                                        width={600}
+                                        height={600}
+                                    />
+                                ) :
                                     /* TXT / CSV / LOG Preview */
                                     ["txt", "csv", "log"].includes(viewDocument.type) ? (
-                                            <div className="text-preview" style={{width: "100%"}}>
-                                                <iframe
-                                                    src={viewDocument.url}
-                                                    title="Text Preview"
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "500px",
-                                                        border: "1px solid #ccc",
-                                                        background: "#fff"
-                                                    }}
-                                                ></iframe>
-                                            </div>
-                                        ) :
+                                        <div className="text-preview" style={{ width: "100%" }}>
+                                            <iframe
+                                                src={viewDocument.url}
+                                                title="Text Preview"
+                                                style={{
+                                                    width: "100%",
+                                                    height: "500px",
+                                                    border: "1px solid #ccc",
+                                                    background: "#fff"
+                                                }}
+                                            ></iframe>
+                                        </div>
+                                    ) :
                                         /* PDF or Office Docs */
                                         (viewDocument.type === "pdf" || viewDocument.enable_external_file_view === 1) ? (
                                             <div
@@ -298,7 +325,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                                                             : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewDocument.url)}`
                                                     }
                                                     title="Document Preview"
-                                                    style={{width: "100%", height: "500px", border: "none"}}
+                                                    style={{ width: "100%", height: "500px", border: "none" }}
                                                 ></iframe>
                                             </div>
                                         ) : (
@@ -319,7 +346,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                             }}
                             className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
                         >
-                            <MdOutlineCancel fontSize={16} className="me-1"/> Cancel
+                            <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
                         </button>
                     </div>
                 </Modal.Footer>
