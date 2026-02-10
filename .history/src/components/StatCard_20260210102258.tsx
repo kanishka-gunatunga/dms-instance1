@@ -31,11 +31,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, changeText, cha
                             </div>
                         </div>
 
-                        <p className="mb-0 mt-4 small" style={{ marginLeft: "2px", color: "#717182", fontSize: "14px" }}>
-                            <span className={changeColorClass}>
-                                {changeText !== undefined && changeText !== "" ? changeText : "0%"}
-                            </span> from last month
-                        </p>
+                        <p className={`mb-0 mt-4 small`}
+                            style={{ marginLeft: "2px", color: "#717182", fontSize: "14px" }}>
+                            <span className={`${changeColorClass}`}>{changeText}</span> from last month</p>
                     </div>
                 </div>
             </div>

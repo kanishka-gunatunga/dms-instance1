@@ -401,8 +401,8 @@ export default function Home() {
         <div className={styles.page}>
             <DashboardLayout>
                 <div
-                    className="d-flex flex-column custom-scroll gap-3 dashboard-content"
-                    style={{ minHeight: "100vh", maxHeight: "100%", overflowY: "scroll", paddingBottom: "3rem" }}
+                    className="d-flex flex-column custom-scroll gap-3"
+                    style={{ minHeight: "100vh", maxHeight: "100%", overflowY: "scroll" }}
                 >
                     <div
                         className="d-flex flex-column rounded"
@@ -523,9 +523,6 @@ export default function Home() {
 
                     <NearlyExpiredDocuments initialDocuments={nearlyExpiredDocs} userId={userId} isAdmin={isAdmin}
                         onRefresh={fetchAllData} />
-
-                    {/* Spacer*/}
-                    <div aria-hidden="true" style={{ minHeight: "3.5rem", flexShrink: 0 }} />
                 </div>
             </DashboardLayout>
         </div>

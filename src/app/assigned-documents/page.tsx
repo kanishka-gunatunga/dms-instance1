@@ -86,6 +86,7 @@ import LoadingBar from "@/components/common/LoadingBar";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
 import Image from "next/image";
+import styles from "./assigned-documents.module.css";
 
 interface Category {
   category_name: string;
@@ -1969,13 +1970,16 @@ export default function AllDocTable() {
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center pt-2">
-          <Heading text="Assigned Documents" color="#444" />
-          <div className="d-flex flex-row mt-3 mt-lg-0">
+        <div className={styles.pageWrapper}>
+        <div className={`${styles.pageHeader} pt-2`}>
+          <div className={styles.pageTitle}>
+            <Heading text="Assigned Documents" color="#0A0A0A" />
+          </div>
+          <div className={styles.headerActions}>
             {hasPermission(permissions, "Assigned Documents", "Create Document") && (
               <Link
                 href="/all-documents/add"
-                className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
+                className={`${styles.btnAdd} me-2`}
               >
                 <FaPlus className="me-1" /> Add Document
               </Link>
@@ -1983,33 +1987,31 @@ export default function AllDocTable() {
             {hasPermission(permissions, "Reminder", "View Reminders") && (
               <button
                 onClick={() => handleOpenModal("myReminderModel")}
-                className="reminderButton bg-danger text-white border border-danger rounded px-3 py-1"
+                className={styles.btnReminders}
               >
                 <FaListUl className="me-1" /> My Reminders
               </button>
             )}
-
-
           </div>
         </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3 position-relative">
-          <div className="d-flex flex-column flex-lg-row">
+        <div className={`${styles.card} d-flex flex-column position-relative`}>
+          <div className={styles.filtersRow}>
             <div className="col-12 col-lg-6 d-flex flex-column flex-lg-row">
               <div className="input-group mb-3 pe-lg-2">
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${styles.searchInput}`}
                   placeholder="Search By Name Or Description"
                   onChange={(e) => handleTermSearch(e.target.value)}
-                ></input>
+                />
               </div>
               <div className="input-group mb-3 pe-lg-2">
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${styles.searchInput}`}
                   placeholder="Search By Meta Tags"
                   onChange={(e) => handleMetaSearch(e.target.value)}
-                ></input>
+                />
               </div>
             </div>
             <div className="col-12 col-lg-6 d-flex flex-column flex-lg-row">
@@ -2024,7 +2026,7 @@ export default function AllDocTable() {
                         )?.category_name
                         : "Select Category"
                     }
-                    className="custom-dropdown-text-start text-start w-100"
+                    className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
                     onSelect={(value) => handleCategorySelect(value || "")}
                   >
                     <Dropdown.Item eventKey="" style={{ fontStyle: "italic", color: "gray" }}>
@@ -2052,7 +2054,7 @@ export default function AllDocTable() {
                   <DropdownButton
                     id="dropdown-storage-button"
                     title={filterData.storage || "Select Storage"}
-                    className="w-100 custom-dropdown-text-start"
+                    className={`w-100 custom-dropdown-text-start ${styles.dropdownToggle}`}
                   >
                     <Dropdown.Item onClick={() => handleStorageSelect("")}>
                       None
@@ -2079,10 +2081,7 @@ export default function AllDocTable() {
 
 
           <div>
-            <div
-              style={{ maxHeight: "350px", overflowY: "auto" }}
-              className="custom-scroll "
-            >
+            <div className={`${styles.tableWrapper} custom-scroll`}>
               <Table hover responsive>
                 <thead className="sticky-header">
                   <tr>
@@ -2452,16 +2451,18 @@ export default function AllDocTable() {
                       </tr>
                     ))
                   ) : (
-                    <div className="text-start w-100 py-3">
-                      <Paragraph text="No data available" color="#333" />
-                    </div>
+                    <tr key="no-data">
+                      <td colSpan={8} className={styles.noData}>
+                        <Paragraph text="No data available" color="#717182" />
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </Table>
             </div>
-            <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
               <div className="d-flex justify-content-between align-items-center">
-                <p className="pagintionText mb-0 me-2">Items per page:</p>
+                <p className="mb-0 me-2" style={{ fontSize: "0.875rem", color: "#717182" }}>Items per page:</p>
                 <Form.Select
                   onChange={handleItemsPerPageChange}
                   value={itemsPerPage}
@@ -2477,7 +2478,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className="pagination-info" style={{ fontSize: "14px" }}>
+                <div className={styles.paginationInfo}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -2494,6 +2495,7 @@ export default function AllDocTable() {
               </div>
             </div>
           </div>
+        </div>
         </div>
         {/* Edit Modal */}
         <Modal
@@ -3639,15 +3641,18 @@ export default function AllDocTable() {
               <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
                 Body
               </p>
-              <ReactQuill
-                value={sendEmailData?.body || ""}
-                onChange={(content) =>
-                  setSendEmailData((prev) => ({
-                    ...(prev || { subject: "", body: "", to: "" }),
-                    body: content,
-                  }))
-                }
-              />
+              {modalStates.sendEmailModel && (
+                <ReactQuill
+                  key={`quill-${selectedDocumentId || 'new'}`}
+                  value={sendEmailData?.body || ""}
+                  onChange={(content) =>
+                    setSendEmailData((prev) => ({
+                      ...(prev || { subject: "", body: "", to: "" }),
+                      body: content,
+                    }))
+                  }
+                />
+              )}
               <div className="d-flex w-100">
                 <p
                   className="mb-1 text-start w-100 px-3 py-2 rounded mt-2"

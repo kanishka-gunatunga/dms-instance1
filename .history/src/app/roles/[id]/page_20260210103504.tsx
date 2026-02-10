@@ -200,11 +200,9 @@ export default function AllDocTable({ params }: Props) {
                 <div className="d-flex justify-content-between align-items-center pt-2">
                     <Heading text="Manage Role" color="#444" />
                 </div>
-                <div
-                    className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3"
-                    style={{ maxHeight: "80vh", minHeight: "400px" }}
-                >
-                    <div className="d-flex flex-column custom-scroll flex-grow-1" style={{ minHeight: 0, overflowY: "auto" }}>
+                <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
+
+                    <div className="d-flex flex-column  custom-scroll" style={{ maxHeight: "80vh", overflowY: "auto" }}>
                         <div className="d-flex col-12 col-md-6 flex-column mb-3">
                             <p className="mb-1" style={{ fontSize: "14px" }}>
                                 Role Name
@@ -269,22 +267,24 @@ export default function AllDocTable({ params }: Props) {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </div>
+                            <Divider />
 
-                    <div className="d-flex flex-row flex-shrink-0 pt-3 mt-2 border-top" style={{ paddingBottom: "0.75rem" }}>
-                        <button
-                            onClick={() => handleAddRolePermission()}
-                            className="custom-icon-button button-success px-3 py-2 rounded me-2"
-                        >
-                            <IoSave fontSize={16} className="me-1" /> Yes
-                        </button>
-                        <Link
-                            href={"/roles"}
-                            className="custom-icon-button button-danger text-white bg-danger px-3 py-2 rounded"
-                        >
-                            <MdOutlineCancel fontSize={16} className="me-1" /> No
-                        </Link>
+                            <div className="d-flex flex-row"
+                            >
+                                <button
+                                    onClick={() => handleAddRolePermission()}
+                                    className="custom-icon-button button-success px-3 py-1 rounded me-2"
+                                >
+                                    <IoSave fontSize={16} className="me-1" /> Yes
+                                </button>
+                                <Link
+                                    href={"/roles"}
+                                    className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+                                >
+                                    <MdOutlineCancel fontSize={16} className="me-1" /> No
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </DashboardLayout>

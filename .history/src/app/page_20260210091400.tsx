@@ -524,7 +524,7 @@ export default function Home() {
                     <NearlyExpiredDocuments initialDocuments={nearlyExpiredDocs} userId={userId} isAdmin={isAdmin}
                         onRefresh={fetchAllData} />
 
-                    {/* Spacer*/}
+                    {/* Spacer so the last section is never cut off at the bottom when scrolling */}
                     <div aria-hidden="true" style={{ minHeight: "3.5rem", flexShrink: 0 }} />
                 </div>
             </DashboardLayout>

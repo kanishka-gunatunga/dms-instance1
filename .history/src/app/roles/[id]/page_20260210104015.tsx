@@ -202,7 +202,7 @@ export default function AllDocTable({ params }: Props) {
                 </div>
                 <div
                     className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3"
-                    style={{ maxHeight: "80vh", minHeight: "400px" }}
+                    style={{ maxHeight: "calc(100vh - 190px)", minHeight: "400px" }}
                 >
                     <div className="d-flex flex-column custom-scroll flex-grow-1" style={{ minHeight: 0, overflowY: "auto" }}>
                         <div className="d-flex col-12 col-md-6 flex-column mb-3">

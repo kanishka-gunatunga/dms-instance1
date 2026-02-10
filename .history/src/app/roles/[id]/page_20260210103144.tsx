@@ -16,10 +16,10 @@ import ToastMessage from "@/components/common/Toast";
 
 interface Props {
     params: { id: string };
-}
+  }
+  
 
-
-export default function AllDocTable({ params }: Props) {
+  export default function AllDocTable({ params }: Props) {
     const { id } = useParams();
 
     const [mounted, setMounted] = useState(false);
@@ -89,9 +89,9 @@ export default function AllDocTable({ params }: Props) {
         { name: "Advanced Search", items: ["Advanced Search"] },
         { name: "Deep Search", items: ["Deep Search", "Add Indexing", "Remove Indexing"] },
         { name: "Document Categories", items: ["Manage Document Category"] },
-        { name: "Bulk Upload", items: ["View Bulk Upload", "Delete Bulk Upload", "Create Bulk Upload", "Edit Bulk Upload",] },
-        { name: "FTP Accounts", items: ["View FTP Accounts", "Delete FTP Accounts", "Create FTP Accounts", "Edit FTP Accounts",] },
-        { name: "Attributes", items: ["View Attributes", "Add Attributes", "Edit Attributes", "Delete Attributes"] },
+        { name: "Bulk Upload", items: ["View Bulk Upload","Delete Bulk Upload","Create Bulk Upload", "Edit Bulk Upload",] },
+        { name: "FTP Accounts", items: ["View FTP Accounts","Delete FTP Accounts","Create FTP Accounts", "Edit FTP Accounts",] },
+        { name: "Attributes", items: ["View Attributes", "Add Attributes", "Edit Attributes","Delete Attributes"] },
         { name: "Sectors", items: ["Manage Sectors"] },
         { name: "Documents Audit Trail", items: ["View Document Audit Trail"] },
         { name: "User", items: ["View Users", "Create User", "Edit User", "Delete User", "Reset Password", "Assign User Role", "Assign Permission"] },
@@ -197,14 +197,12 @@ export default function AllDocTable({ params }: Props) {
     return (
         <>
             <DashboardLayout>
+                <div className="d-flex flex-column" style={{ paddingBottom: "2.5rem" }}>
                 <div className="d-flex justify-content-between align-items-center pt-2">
                     <Heading text="Manage Role" color="#444" />
                 </div>
-                <div
-                    className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3"
-                    style={{ maxHeight: "80vh", minHeight: "400px" }}
-                >
-                    <div className="d-flex flex-column custom-scroll flex-grow-1" style={{ minHeight: 0, overflowY: "auto" }}>
+                <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
+                    <div className="d-flex flex-column custom-scroll" style={{ maxHeight: "70vh", overflowY: "auto" }}>
                         <div className="d-flex col-12 col-md-6 flex-column mb-3">
                             <p className="mb-1" style={{ fontSize: "14px" }}>
                                 Role Name
@@ -272,7 +270,7 @@ export default function AllDocTable({ params }: Props) {
                         </div>
                     </div>
 
-                    <div className="d-flex flex-row flex-shrink-0 pt-3 mt-2 border-top" style={{ paddingBottom: "0.75rem" }}>
+                    <div className="d-flex flex-row flex-shrink-0 pt-3 pb-4 mt-2 border-top" style={{ paddingBottom: "1.5rem" }}>
                         <button
                             onClick={() => handleAddRolePermission()}
                             className="custom-icon-button button-success px-3 py-2 rounded me-2"
@@ -287,13 +285,14 @@ export default function AllDocTable({ params }: Props) {
                         </Link>
                     </div>
                 </div>
+                </div>
             </DashboardLayout>
             <ToastMessage
-                message={toastMessage}
-                show={showToast}
-                onClose={() => setShowToast(false)}
-                type={toastType}
-            />
+        message={toastMessage}
+        show={showToast}
+        onClose={() => setShowToast(false)}
+        type={toastType}
+      />
         </>
     );
 }

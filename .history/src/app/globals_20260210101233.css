@@ -211,8 +211,8 @@ input[type="file"] {
 }
 
 .custom-checkbox input:checked + .checkbox-mark {
-  background-color: #EA580C;
-  border-color: #EA580C;
+  background-color: #4caf50;
+  border-color: #4caf50;
 }
 
 .custom-checkbox .checkbox-mark {
@@ -658,12 +658,12 @@ button {
 }
 
 .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #EA580C !important;
-  border-color: #EA580C !important;
+  background-color: #683ab7 !important;
+  border-color: #683ab7 !important;
 }
 
 .ant-checkbox-indeterminate .ant-checkbox-inner:after {
-  background-color: #EA580C !important;
+  background-color: #683ab7 !important;
 }
 
 input:-internal-autofill-selected {
@@ -821,14 +821,7 @@ textarea:focus {
 }
 
 .ant-radio-checked::after {
-  border-color: #EA580C !important;
-}
-
-.ant-radio-checked .ant-radio-inner {
-  border-color: #EA580C !important;
-}
-.ant-radio-checked .ant-radio-inner::after {
-  background-color: #EA580C !important;
+  border: #683ab7 !important;
 }
 
 input:-webkit-autofill,
@@ -913,12 +906,12 @@ textarea,
 }
 
 .ant-tree-checkbox-checked .ant-tree-checkbox-inner {
-  background-color: #EA580C !important;
-  border-color: #EA580C !important;
+  background-color: #683ab7 !important;
+  border-color: #683ab7 !important;
 }
 
 .ant-checkbox-indeterminate .ant-tree-checkbox-inner:after {
-  background-color: #EA580C !important;
+  background-color: #683ab7 !important;
 }
 
 .ant-picker-calendar-date-content .events .ant-badge-status-text {
@@ -934,8 +927,7 @@ iframe #WordViewerStatusBar {
 }
 
 .ant-checkbox-checked.ant-checkbox-disabled .ant-checkbox-inner {
-  background-color: rgba(234, 88, 12, 0.54) !important;
-  border-color: rgba(234, 88, 12, 0.54) !important;
+  background-color: #683ab78a !important;
 }
 
 .copy-button {

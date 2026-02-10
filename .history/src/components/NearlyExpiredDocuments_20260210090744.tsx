@@ -200,7 +200,7 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
 
     return (
         <>
-            <div className="calendarWrapper nearly-expired-section">
+            <div className="calendarWrapper" style={{ marginTop: "20px", marginBottom: '90px' }}>
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div className="d-flex align-items-center gap-2">
                         <Image src="/warning.svg" alt="warning icon" width={20} height={20} />

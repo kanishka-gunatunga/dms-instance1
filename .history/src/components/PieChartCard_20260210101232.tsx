@@ -24,11 +24,9 @@ interface PieChartCardProps {
 const PieChartCard: React.FC<PieChartCardProps> = ({ title, icon, data }) => {
     return (
         <div className="d-flex flex-column bg-white p-3 p-lg-4 h-100 statCard">
-            <div className="d-flex flex-row align-items-center mb-3 gap-2">
-                <div className="d-flex align-items-center justify-content-center text-secondary" style={{ flexShrink: 0 }}>
-                    <Image src={icon} alt="" width={24} height={24} />
-                </div>
-                <h5 className="mb-0" style={{ color: "#0A0A0A", fontSize: "16px", fontFamily: "Arial", lineHeight: 1.25 }}>{title}</h5>
+            <div className="d-flex flex-row align-items-center mb-3" style={{ alignItems: "center" }}>
+                <div className="text-secondary fs-4 me-2"><Image src={icon} alt="icon" width={24} height={24} /></div>
+                <h5 className="mb-0" style={{ color: '#0A0A0A', fontSize: "16px", fontFamily: "Arial" }}>{title}</h5>
             </div>
 
             <div style={{ width: '100%', height: '450px', marginTop: '-50px' }}>

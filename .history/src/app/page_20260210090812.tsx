@@ -7,14 +7,14 @@ import styles from "./page.module.css";
 // import {PieChart, Pie, Legend, ResponsiveContainer, Cell} from "recharts";
 import useAuth from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { useEffect, useState } from "react";
-import { fetchRemindersData, fetchRemindersDataUser } from "@/utils/dataFetchFunctions";
+import {useEffect, useState} from "react";
+import {fetchRemindersData, fetchRemindersDataUser} from "@/utils/dataFetchFunctions";
 import StatCard from "@/components/StatCard";
 import PieChartCard from "@/components/PieChartCard";
 import RemindersCalendar from "@/components/RemindersCalendar";
 import NearlyExpiredDocuments from "@/components/NearlyExpiredDocuments";
-import { getWithAuth } from "@/utils/apiClient";
-import { useUserContext } from "@/context/userContext";
+import {getWithAuth} from "@/utils/apiClient";
+import {useUserContext} from "@/context/userContext";
 import AssignedFiles from "@/components/AssignedFiles";
 import MySector from "@/components/MySector";
 
@@ -105,7 +105,7 @@ const generateRandomColor = () => `#${Math.floor(Math.random() * 16777215).toStr
 export default function Home() {
     const isAuthenticated = useAuth();
 
-    const { userId } = useUserContext();
+    const {userId} = useUserContext();
     const [isAdmin, setIsAdmin] = useState<number>();
 
     const [selectedDates, setSelectedDates] = useState<SelectedDate[]>([]);
@@ -390,7 +390,7 @@ export default function Home() {
 
 
     if (!isAuthenticated || isLoading) {
-        return <LoadingSpinner />;
+        return <LoadingSpinner/>;
     }
 
     const adminData = isAdmin === 1 ? (dashboardData as AdminDashboardData) : null;
@@ -401,8 +401,8 @@ export default function Home() {
         <div className={styles.page}>
             <DashboardLayout>
                 <div
-                    className="d-flex flex-column custom-scroll gap-3 dashboard-content"
-                    style={{ minHeight: "100vh", maxHeight: "100%", overflowY: "scroll", paddingBottom: "3rem" }}
+                    className="d-flex flex-column custom-scroll gap-3"
+                    style={{minHeight: "100vh", maxHeight: "100%", overflowY: "scroll"}}
                 >
                     <div
                         className="d-flex flex-column rounded"
@@ -411,18 +411,18 @@ export default function Home() {
                             // <div className="d-flex flex-row align-items-center justify-content-between gap-1">
                             <div className="row g-3">
                                 <StatCard title="Total Users" value={adminData?.total_users || 0}
-                                    icon="/total_user.svg"
-                                    changeText=""
-                                    changeColorClass="positiveChange" />
+                                          icon="/total_user.svg"
+                                          changeText=""
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Total Documents" value={adminData?.total_documents || 0}
-                                    icon="/total_document.svg" changeText=""
-                                    changeColorClass="positiveChange" />
+                                          icon="/total_document.svg" changeText=""
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Categories" value={adminData?.total_categories || 0}
-                                    icon="/categories.svg" changeText=""
-                                    changeColorClass="positiveChange" />
+                                          icon="/categories.svg" changeText=""
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Sectors" value={adminData?.total_sectors || 0} icon="/sectors.svg"
-                                    changeText=""
-                                    changeColorClass="noChange" />
+                                          changeText=""
+                                          changeColorClass="noChange"/>
                             </div>
                         )}
 
@@ -430,17 +430,17 @@ export default function Home() {
                             // <div className="d-flex flex-row align-items-center justify-content-between gap-1">
                             <div className="row g-3">
                                 <StatCard title="Assigned Files" value={userData?.assigned_documents_count || 0}
-                                    icon="/total_document.svg" changeText="+12%"
-                                    changeColorClass="positiveChange" />
+                                          icon="/total_document.svg" changeText="+12%"
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Recently Assigned" value={userData?.recently_assigned_count || 0}
-                                    icon="/recently_assigned.svg" changeText="+12%"
-                                    changeColorClass="positiveChange" />
+                                          icon="/recently_assigned.svg" changeText="+12%"
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Due This Week" value={userData?.due_this_week_count || 0}
-                                    icon="/due_this_week.svg" changeText="+12%"
-                                    changeColorClass="positiveChange" />
+                                          icon="/due_this_week.svg" changeText="+12%"
+                                          changeColorClass="positiveChange"/>
                                 <StatCard title="Overdue" value={userData?.overdue_count || 0} icon="/warning.svg"
-                                    changeText="+12%"
-                                    changeColorClass="noChange" />
+                                          changeText="+12%"
+                                          changeColorClass="noChange"/>
                             </div>
                         )}
 
@@ -501,16 +501,16 @@ export default function Home() {
                             <div className="row g-3 align-items-stretch">
 
                                 <div className="col-12 col-lg-8">
-                                    <AssignedFiles documents={userData.assigned_documents} userId={userId} />
+                                    <AssignedFiles documents={userData.assigned_documents} userId={userId}/>
                                 </div>
 
                                 <div className="col-12 col-lg-4">
                                     <div className="d-flex flex-column gap-3 h-100">
                                         <MySector sectorName={userData.sector_name}
-                                            userCount={userData.sector_user_count}
-                                            documentCount={userData.sector_document_count} />
+                                                  userCount={userData.sector_user_count}
+                                                  documentCount={userData.sector_document_count}/>
                                         <PieChartCard title="My Documents by Category" icon="/jam_document.svg"
-                                            data={categoryChartData} />
+                                                      data={categoryChartData}/>
                                     </div>
                                 </div>
 
@@ -519,13 +519,10 @@ export default function Home() {
                     )}
 
 
-                    <RemindersCalendar reminders={selectedDates} />
+                    <RemindersCalendar reminders={selectedDates}/>
 
                     <NearlyExpiredDocuments initialDocuments={nearlyExpiredDocs} userId={userId} isAdmin={isAdmin}
-                        onRefresh={fetchAllData} />
-
-                    {/* Spacer*/}
-                    <div aria-hidden="true" style={{ minHeight: "3.5rem", flexShrink: 0 }} />
+                                            onRefresh={fetchAllData}/>
                 </div>
             </DashboardLayout>
         </div>
