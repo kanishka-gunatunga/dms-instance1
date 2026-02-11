@@ -51,6 +51,7 @@ import {
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 import 'react-quill/dist/quill.snow.css';
+import styles from "./deep-search.module.css";
 
 interface Category {
   category_name: string;
@@ -1679,44 +1680,34 @@ const [generatedID, setGeneratedID] =useState<number>(0);
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex justify-content-between align-items-center pt-2">
-          <Heading text="Deep Search" color="#444" />
-        </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
-          <div className="d-flex flex-column flex-lg-row">
-            <div className="col-12">
-              <div className="input-group mb-3 metaBorder ">
-                <input
-                  type="search"
-                  className="form-control deep-search-input"
-                  placeholder="Type here to search within PDFs, Word, and more..."
-                  aria-label="Type here to search within PDFs, Word, and more..."
-                  aria-describedby="basic-addon2"
-                  style={{
-                    borderTopRightRadius: "0px !important",
-                    borderBottomRightRadius: "0px !important",
-                  }}
-                  onChange={(e) => handleTermSearch(e.target.value)}
-                ></input>
-                <span
-                  className="input-group-text text-white"
-                  id="basic-addon2"
-                  style={{
-                    backgroundColor: "#683ab7",
-                    border: "solid 1px #683ab7 !important",
-                    borderTopLeftRadius: "0px !important",
-                    borderBottomLeftRadius: "0px !important",
-                    fontSize: "14px",
-                  }}
-                  onClick={() => handleSearch()}
-                >
-                  <FiSearch className="me-2" /> Search
-                </span>
-              </div>
-              <p
-                className="text-danger"
-                style={{ fontSize: "14px", fontWeight: "400" }}
-              >
+        <div className={styles.pageWrapper}>
+          <div className={styles.pageHeader}>
+            <Heading text="Deep Search" color="#444" />
+          </div>
+          <div className={`d-flex flex-column ${styles.card}`}>
+            <div className="d-flex flex-column flex-lg-row">
+              <div className="col-12">
+                <div className={`input-group mb-3 ${styles.searchInputGroup}`}>
+                  <input
+                    type="search"
+                    className="form-control"
+                    placeholder="Type here to search within PDFs, Word, and more..."
+                    aria-label="Type here to search within PDFs, Word, and more..."
+                    aria-describedby="basic-addon2"
+                    onChange={(e) => handleTermSearch(e.target.value)}
+                  />
+                  <span
+                    className={`input-group-text ${styles.searchBtn}`}
+                    id="basic-addon2"
+                    onClick={() => handleSearch()}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <FiSearch className="me-2" /> Search
+                  </span>
+                </div>
+                <p className={styles.searchHint}>
                 You will receive up to 10 results for each search. The search is
                 not case-sensitive, so searching for &quot;Report&quot; and
                 &quot;report&quot; will return the same results. Common words
@@ -1726,31 +1717,19 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 include results for &quot;running&quot; and &quot;runs.&quot;
                 Supported file types include Word documents, PDFs, Notepad
                 files, and Excel spreadsheets.
-              </p>
+                </p>
             </div>
           </div>
           <div>
             {isLoadingTable && <LoadingBar />}
           </div>
-          <div
-                  style={{
-                    maxHeight: "380px",
-                    minHeight: "320px",
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                  }}
-                  className="custom-scroll"
-                >
+          <div className={`${styles.resultsWrapper} custom-scroll`}>
           <div className="row mt-4">
           {paginatedData.length > 0 ? (
   paginatedData.map((item) => (
-    <div key={item.id} className="col-md-12 mb-4">
-    
-    <div className="d-flex justify-content-between align-items-center">
-                <p 
-                  className="mb-2 mt-2"
-                  style={{ fontSize: "16px", color: "#000", fontWeight: "bold" }}
-                >
+    <div key={item.id} className={`col-md-12 ${styles.resultCard}`}>
+    <div className={styles.resultHeader}>
+                <p className={styles.resultTitle}>
                   {item.name}
                 </p>
 
@@ -1774,21 +1753,14 @@ const [generatedID, setGeneratedID] =useState<number>(0);
 
       {item.pages && item.pages.length > 0 ? (
         <div>
-          <p style={{ fontSize: "14px", fontWeight: "bold", color: "#555" }}>
+          <p className={styles.matchedPagesLabel}>
             Matched Pages:
           </p>
-          <div className="d-flex flex-column gap-2">
+          <div className={styles.pagesList}>
             {item.pages.map((pageItem, index) => (
               <div
                 key={index}
-                style={{
-                  backgroundColor: "#f9f9f9",
-                  padding: "8px",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  color: "#333",
-                  border: "1px solid #ddd",
-                }}
+                className={styles.pageItem}
               >
                 <strong>Page {pageItem.page}</strong>
                 <div
@@ -1801,20 +1773,21 @@ const [generatedID, setGeneratedID] =useState<number>(0);
           </div>
         </div>
       ) : (
-        <p style={{ fontSize: "14px", color: "#888" }}>
+        <p className={styles.noHighlights}>
           No specific highlights found.
         </p>
       )}
     </div>
   ))
 ) : (
-  <div className="text-start w-100 py-3">
-    <Paragraph text="No data available" color="#333" />
+  <div className={styles.noData}>
+    <Paragraph text="No data available" color="#717182" />
   </div>
 )}
 
           </div>
           </div>
+        </div>
         </div>
         {/* Edit Modal */}
         <Modal

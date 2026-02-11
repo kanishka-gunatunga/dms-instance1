@@ -874,7 +874,7 @@ export default function AllDocTable() {
                                 <React.Fragment key={parentCategory.id}>
                                   <Dropdown.Item
                                     eventKey={parentCategory.id.toString()}
-                                    style={{ fontWeight: "bold", marginLeft: "0px" }}
+                                    style={{ fontWeight: "bold", paddingLeft: "0px" }}
                                   >
                                     {parentCategory.category_name}
                                   </Dropdown.Item>
@@ -887,7 +887,7 @@ export default function AllDocTable() {
                                       <Dropdown.Item
                                         key={childCategory.id}
                                         eventKey={childCategory.id.toString()}
-                                        style={{ marginLeft: "20px" }} 
+                                        style={{ paddingLeft: "20px" }} 
                                       >
                                         {childCategory.category_name}
                                       </Dropdown.Item>

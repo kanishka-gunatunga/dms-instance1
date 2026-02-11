@@ -90,6 +90,7 @@ import Image from "next/image";
 import { LuText } from "react-icons/lu";
 import { useChat } from "@/context/ChatContext";
 import { PiStarFourThin } from "react-icons/pi";
+import styles from "./all-documents.module.css";
 
 interface Category {
   category_name: string;
@@ -1936,130 +1937,105 @@ export default function AllDocTable() {
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex justify-content-between align-items-center pt-2">
-          <div className="d-flex flex-row align-items-center">
-            <Heading text="All Documents" color="#444" />
+        <div className={styles.pageWrapper}>
+        <div className={`${styles.pageHeader}`}>
+          <div className={styles.pageTitle}>
+            <Heading text="All Documents" color="#0A0A0A" />
             {/* <InfoModal
               title="Sample Blog"
               content={`<h1><strong>Hello world,</strong></h1><p>The Company Profile feature allows users to customize the branding of the application by entering the company name and uploading logos. This customization will reflect on the login screen, enhancing the professional appearance and brand identity of the application.</p><br><h3><strong>Hello world,</strong></h3><p>The Company Profile feature allows users to customize the branding of the application by entering the company name and uploading logos. This customization will reflect on the login screen, enhancing the professional appearance and brand identity of the application.</p><br><h3><strong>Hello world,</strong></h3><p>The Company Profile feature allows users to customize the branding of the application by entering the company name and uploading logos. This customization will reflect on the login screen, enhancing the professional appearance and brand identity of the application.</p><br><h3><strong>Hello world,</strong></h3><p>The Company Profile feature allows users to customize the branding of the application by entering the company name and uploading logos. This customization will reflect on the login screen, enhancing the professional appearance and brand identity of the application.</p>`}
             /> */}
           </div>
-          <div className="d-flex flex-row">
+          <div className={styles.headerActions}>
             {hasPermission(permissions, "All Documents", "Create Document") && (
               <Link
                 href="/all-documents/add"
-                className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
+                className={`${styles.btnAdd} me-2`}
               >
                 <FaPlus className="me-1" /> Add Document
               </Link>
             )}
           </div>
         </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3 position-relative">
-          <div className="d-flex flex-column flex-lg-row">
-            <div className="col-12 col-lg-5 d-flex flex-column flex-lg-row">
-              <div className="input-group mb-3 pe-lg-2">
+        <div className={`${styles.card} d-flex flex-column position-relative`}>
+          <div className={styles.filtersRow}>
+            <div className={styles.filterItem}>
+              <div className="input-group">
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${styles.searchInput}`}
                   placeholder="Search By Name Or Description"
                   onChange={(e) => handleTermSearch(e.target.value)}
-                ></input>
-              </div>
-              <div className="input-group mb-3 pe-lg-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search By Meta Tags"
-                  onChange={(e) => handleMetaSearch(e.target.value)}
-                ></input>
+                />
               </div>
             </div>
-            <div className="col-12 col-lg-7 d-flex flex-column flex-lg-row">
-              <div className="col-12 col-lg-4">
-                <div className="input-group mb-3">
-                  <DropdownButton
-                    id="dropdown-category-button"
-                    title={
-                      filterData.category
-                        ? categoryDropDownData.find(
-                          (item) => item.id.toString() === filterData.category
-                        )?.category_name
-                        : "Select Category"
-                    }
-                    className="custom-dropdown-text-start text-start w-100"
-                    onSelect={(value) => handleCategorySelect(value || "")}
+            <div className={styles.filterItem}>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className={`form-control ${styles.searchInput}`}
+                  placeholder="Search By Meta Tags"
+                  onChange={(e) => handleMetaSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className={styles.filterItem}>
+              <DropdownButton
+                id="dropdown-category-button"
+                title={
+                  filterData.category
+                    ? categoryDropDownData.find(
+                        (item) => item.id.toString() === filterData.category
+                      )?.category_name
+                    : "Select Category"
+                }
+                className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                onSelect={(value) => handleCategorySelect(value || "")}
+              >
+                <Dropdown.Item eventKey="" style={{ fontStyle: "italic", color: "gray" }}>
+                  None
+                </Dropdown.Item>
+                {categoryDropDownData.map((category) => (
+                  <Dropdown.Item
+                    key={category.id}
+                    eventKey={category.id.toString()}
+                    style={{
+                      fontWeight: category.parent_category === "none" ? "bold" : "normal",
+                      paddingLeft: category.parent_category === "none" ? "10px" : "20px",
+                    }}
                   >
-                    <Dropdown.Item
-                      eventKey=""
-                      style={{ fontStyle: "italic", color: "gray" }}
-                    >
-                      None
-                    </Dropdown.Item>
-
-                    {categoryDropDownData.map((category) => (
-                      <Dropdown.Item
-                        key={category.id}
-                        eventKey={category.id.toString()}
-                        style={{
-                          fontWeight:
-                            category.parent_category === "none"
-                              ? "bold"
-                              : "normal",
-                          paddingLeft:
-                            category.parent_category === "none"
-                              ? "10px"
-                              : "20px",
-                        }}
-                      >
-                        {category.category_name}
-                      </Dropdown.Item>
-                    ))}
-                  </DropdownButton>
-                </div>
-              </div>
-              <div className="col-12 col-lg-4 px-lg-2">
-                <div className="input-group mb-3">
-                  <DropdownButton
-                    id="dropdown-storage-button"
-                    title={filterData.storage || "Select Storage"}
-                    className="w-100 custom-dropdown-text-start"
-                  >
-                    <Dropdown.Item onClick={() => handleStorageSelect("")}>
-                      None
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                      onClick={() =>
-                        handleStorageSelect("Local Disk (Default)")
-                      }
-                    >
-                      Local Disk (Default)
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                      onClick={() => handleStorageSelect("Amazon S3")}
-                    >
-                      Amazon S3
-                    </Dropdown.Item>
-                  </DropdownButton>
-                </div>
-              </div>
-              <div className="col-12 col-lg-4">
-                <div className="input-group mb-3 mb-lg-0">
-                  {/* <DatePicker onChange={() => handleDateChange} /> */}
-                  <DatePicker
-                    placeholder="Created Date"
-                    onChange={handleDateChange}
-                  />
-                </div>
-              </div>
+                    {category.category_name}
+                  </Dropdown.Item>
+                ))}
+              </DropdownButton>
+            </div>
+            <div className={styles.filterItem}>
+              <DropdownButton
+                id="dropdown-storage-button"
+                title={filterData.storage || "Select Storage"}
+                className={`w-100 custom-dropdown-text-start ${styles.dropdownToggle}`}
+              >
+                <Dropdown.Item onClick={() => handleStorageSelect("")}>
+                  None
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleStorageSelect("Local Disk (Default)")}>
+                  Local Disk (Default)
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleStorageSelect("Amazon S3")}>
+                  Amazon S3
+                </Dropdown.Item>
+              </DropdownButton>
+            </div>
+            <div className={`${styles.filterItem} ${styles.datePickerWrapper}`}>
+              <DatePicker
+                placeholder="Created Date"
+                onChange={handleDateChange}
+              />
             </div>
           </div>
           <div>{isLoadingTable && <LoadingBar />}</div>
           <div>
-            <div
-              style={{ maxHeight: "350px", overflowY: "auto" }}
-              className="custom-scroll "
-            >
+            <div className={`${styles.tableWrapper} custom-scroll`}>
               <Table hover responsive>
                 <thead className="sticky-header">
                   <tr>
@@ -2692,14 +2668,16 @@ export default function AllDocTable() {
                       </tr>
                     ))
                   ) : (
-                    <div className="text-start w-100 py-3">
-                      <Paragraph text="No data available" color="#333" />
-                    </div>
+                    <tr>
+                      <td colSpan={7} className={styles.noData}>
+                        <Paragraph text="No data available" color="#717182" />
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </Table>
             </div>
-            <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
               <div className="d-flex justify-content-between align-items-center">
                 <p className="pagintionText mb-0 me-2">Items per page:</p>
                 <Form.Select
@@ -2717,7 +2695,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className="pagination-info" style={{ fontSize: "14px" }}>
+                <div className={styles.paginationInfo}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -2734,6 +2712,7 @@ export default function AllDocTable() {
               </div>
             </div>
           </div>
+        </div>
         </div>
         {/* Edit Modal */}
         <Modal

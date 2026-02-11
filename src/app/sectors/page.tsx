@@ -3,12 +3,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Tree, Modal, Input, Button } from 'antd';
-import type { TreeDataNode, TreeProps } from 'antd';
+import { Tree, Modal, Input } from 'antd';
+import type { TreeDataNode } from 'antd';
 import { deleteWithAuth, getWithAuth, postWithAuth } from '@/utils/apiClient';
 import Heading from '@/components/common/Heading';
 import DashboardLayout from '@/components/DashboardLayout';
 import { IoPencil, IoTrash } from 'react-icons/io5';
+import styles from './sectors.module.css';
 
 interface CategoryNode extends TreeDataNode {
   title: string | JSX.Element;
@@ -127,49 +128,51 @@ const CategoryManagement: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="d-flex flex-column justify-content-center align-items-start pt-2">
-        <div className="d-flex flex-row w-100 py-3 align-items-center justify-content-between">
+      <div className={styles.pageWrapper}>
+        <div className={styles.pageHeader}>
           <Heading text="Sectors" color="#444" />
-          <Button type="primary" className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1" onClick={() => showModal('add')}>Add Root Category</Button>
+          <button
+            type="button"
+            className={styles.btnAdd}
+            onClick={() => showModal('add')}
+          >
+            Add Root Category
+          </button>
         </div>
-        <div className="p-2 p-lg-5 bg-white w-100 rounded">
-          <div className=''>
+        <div className={`${styles.card} w-100`}>
+          <div className={styles.treeWrapper}>
             <Tree
               checkable
               treeData={treeData}
               titleRender={(node) => (
-                <div className='d-flex flex-column flex-md-row' >
-                  {node.title}
-                  <Button
-                    size="small"
+                <div className={styles.nodeActions}>
+                  <span>{node.title}</span>
+                  <button
+                    type="button"
+                    className={styles.btnAddChild}
                     onClick={() => showModal('add', null, node.key)}
-                    style={{ marginRight: 8, marginLeft: 8  }}
-                    className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1 my-1 my-md-0"
                   >
                     Add Child
-                  </Button>
-                  <Button
-                    size="small"
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnEdit}
                     onClick={() => showModal('edit', node.key, node.parent_sector)}
-                    style={{ marginLeft: 8 }}
-                     className="custom-icon-button button-success px-3 py-2 rounded me-2 my-1 my-md-0"
                   >
                     <IoPencil fontSize={16} className="me-1" /> Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    danger
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnDanger}
                     onClick={() => handleDeleteNode(node.key)}
-                    style={{ marginLeft: 8 }}
-                    className="custom-icon-button button-danger text-white bg-danger px-3 py-2 rounded my-1 my-md-0"
                   >
-                     <IoTrash fontSize={16} className="me-1" /> Delete
-                  </Button>
+                    <IoTrash fontSize={16} className="me-1" /> Delete
+                  </button>
                 </div>
               )}
             />
             <Modal
-            className='sector-model'
+              className={styles.modalWrapper}
               title={modalMode === 'add' ? 'Add Category' : 'Edit Category'}
               open={modalVisible}
               onOk={modalMode === 'add' ? handleAddNode : handleEditNode}

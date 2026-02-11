@@ -51,6 +51,7 @@ import {
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 import 'react-quill/dist/quill.snow.css';
+import styles from "./advanced-search.module.css";
 
 interface Category {
   category_name: string;
@@ -1730,44 +1731,34 @@ export default function AllDocTable() {
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex justify-content-between align-items-center pt-2">
-          <Heading text="Advanced Search" color="#444" />
-        </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
-          <div className="d-flex flex-column flex-lg-row">
-            <div className="col-12">
-              <div className="input-group mb-3 metaBorder ">
-                <input
-                  type="search"
-                  className="form-control deep-search-input"
-                  placeholder="Type here to search within PDFs, Word, and more..."
-                  aria-label="Type here to search within PDFs, Word, and more..."
-                  aria-describedby="basic-addon2"
-                  style={{
-                    borderTopRightRadius: "0px !important",
-                    borderBottomRightRadius: "0px !important",
-                  }}
-                  onChange={(e) => handleTermSearch(e.target.value)}
-                ></input>
-                <span
-                  className="input-group-text text-white"
-                  id="basic-addon2"
-                  style={{
-                    backgroundColor: "#683ab7",
-                    border: "solid 1px #683ab7 !important",
-                    borderTopLeftRadius: "0px !important",
-                    borderBottomLeftRadius: "0px !important",
-                    fontSize: "14px",
-                  }}
-                  onClick={() => handleSearch()}
-                >
-                  <FiSearch className="me-2" /> Search
-                </span>
-              </div>
-              <p
-                className="text-danger"
-                style={{ fontSize: "14px", fontWeight: "400" }}
-              >
+        <div className={styles.pageWrapper}>
+          <div className={styles.pageHeader}>
+            <Heading text="Advanced Search" color="#444" />
+          </div>
+          <div className={`d-flex flex-column ${styles.card}`}>
+            <div className="d-flex flex-column flex-lg-row">
+              <div className="col-12">
+                <div className={`input-group mb-3 ${styles.searchInputGroup}`}>
+                  <input
+                    type="search"
+                    className="form-control"
+                    placeholder="Type here to search within PDFs, Word, and more..."
+                    aria-label="Type here to search within PDFs, Word, and more..."
+                    aria-describedby="basic-addon2"
+                    onChange={(e) => handleTermSearch(e.target.value)}
+                  />
+                  <span
+                    className={`input-group-text ${styles.searchBtn}`}
+                    id="basic-addon2"
+                    onClick={() => handleSearch()}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <FiSearch className="me-2" /> Search
+                  </span>
+                </div>
+                <p className={styles.searchHint}>
                 You will receive up to 10 results for each search. The search is
                 not case-sensitive, so searching for &quot;Report&quot; and
                 &quot;report&quot; will return the same results. Common words
@@ -1777,17 +1768,14 @@ export default function AllDocTable() {
                 include results for &quot;running&quot; and &quot;runs.&quot;
                 Supported file types include Word documents, PDFs, Notepad
                 files, and Excel spreadsheets.
-              </p>
+                </p>
             </div>
           </div>
           <div>
             {isLoadingTable && <LoadingBar />}
           </div>
           <div>
-            <div
-              style={{ maxHeight: "350px", overflowY: "auto" }}
-              className="custom-scroll "
-            >
+            <div className={`${styles.tableWrapper} custom-scroll`}>
               <Table hover responsive>
                 <thead className="sticky-header">
                   <tr>
@@ -2170,16 +2158,18 @@ export default function AllDocTable() {
                       </tr>
                     ))
                   ) : (
-                    <div className="text-start w-100 py-3">
-                      <Paragraph text="No data available" color="#333" />
-                    </div>
+                    <tr>
+                      <td colSpan={8} className={styles.noData}>
+                        <Paragraph text="No data available" color="#717182" />
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </Table>
             </div>
-            <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
               <div className="d-flex justify-content-between align-items-center">
-                <p className="pagintionText mb-0 me-2">Items per page:</p>
+                <p className={`${styles.paginationLabel} mb-0`}>Items per page:</p>
                 <Form.Select
                   onChange={handleItemsPerPageChange}
                   value={itemsPerPage}
@@ -2195,7 +2185,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className="pagination-info" style={{ fontSize: "14px" }}>
+                <div className={styles.paginationInfo}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -2212,6 +2202,7 @@ export default function AllDocTable() {
               </div>
             </div>
           </div>
+        </div>
         </div>
         {/* Edit Modal */}
         <Modal

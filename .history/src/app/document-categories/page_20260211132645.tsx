@@ -595,7 +595,6 @@ export default function AllDocTable() {
                             </div>
                           </td>
 
-                          {/* <td className="border-0">{item.category_name} <span>{item.status}</span></td> */}
                           <td className="border-0">
                             <div className="col-12 col-lg-12 d-flex flex-column pe-2">
                               {item.status === 'active' && (
