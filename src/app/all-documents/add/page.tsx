@@ -530,8 +530,8 @@ export default function AllDocTable() {
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Meta tags</label>
-                  <div>
-                    <div className="w-100 d-flex" style={{ marginBottom: "0.5rem" }}>
+                  <div style={{ width: "100%" }}>
+                    <div className={styles.metaTagRow} style={{ marginBottom: "0.5rem" }}>
                       <input
                         type="text"
                         value={currentMeta}
