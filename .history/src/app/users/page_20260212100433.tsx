@@ -193,14 +193,6 @@ export default function AllDocTable() {
         <div className={styles.pageWrapper}>
           <div className={styles.pageHeader}>
             <Heading text="Users" color="#444" />
-            {/* {hasPermission(permissions, "User", "Create User") && (
-            <Link
-              href="/users/add-user"
-              className="addButton bg-white text-dark border border-success rounded px-3 py-1"
-            >
-              <FaPlus /> Add User
-            </Link>
-          )} */}
             {isAdEnabled === '0' && hasPermission(permissions, "User", "Create User") && (
               <Link
                 href="/users/add-user"
@@ -321,7 +313,6 @@ export default function AllDocTable() {
                         type="email"
                         className={styles.formInput}
                         value={selectedItem?.email || ""}
-                        // onChange={(e) => setEmail(e.target.value)}
                         readOnly
                       />
                     </div>

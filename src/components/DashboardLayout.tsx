@@ -620,7 +620,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                     </Nav>
                 </div>
 
-                <Container fluid className="mt-0" style={{ backgroundColor: "#F0F0FF", padding: "20px" }}>
+                <Container fluid className="mt-0" style={{ backgroundColor: "#F0F0FF", padding: "20px", overflowY: "auto", minHeight: 0 }}>
                     {children}
                 </Container>
             </div>
@@ -798,7 +798,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                     </Nav>
                 </div>
 
-                <Container fluid style={{ backgroundColor: "#F0F0FF", padding: "20px" }}>{children}</Container>
+                <Container fluid style={{ backgroundColor: "#F0F0FF", padding: "20px", overflowY: "auto", minHeight: 0 }}>{children}</Container>
             </div>
 
             <ChatWindow />

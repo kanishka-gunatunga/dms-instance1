@@ -35,7 +35,6 @@ import { fetchRemindersData } from "@/utils/dataFetchFunctions";
 import LoadingBar from "@/components/common/LoadingBar";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
-import styles from "./reminders.module.css";
 
 
 
@@ -263,35 +262,38 @@ export default function AllDocTable() {
   return (
     <>
       <DashboardLayout>
-        <div className={styles.pageWrapper}>
-          <div className={styles.pageHeader}>
-            <Heading text="Reminders " color="#444" />
-            <div className="d-flex flex-row">
-              {hasPermission(permissions, "Reminder", "Create Reminder") && (
-                <Link
-                  href="/reminders/add"
-                  className={styles.btnAdd}
-                >
-                  <FaPlus className="me-1" /> Add Reminder
-                </Link>
-              )}
+        <div className="d-flex justify-content-between align-items-center pt-2">
+          <Heading text="Reminders " color="#444" />
+          <div className="d-flex flex-row">
+            {hasPermission(permissions, "Reminder", "Create Reminder") && (
+              <Link
+                href="/reminders/add"
+                className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
+              >
+                <FaPlus className="me-1" /> Add Reminder
+              </Link>
+            )}
 
-            </div>
           </div>
-          <div className={`d-flex flex-column ${styles.card}`}>
+        </div>
+        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
           <div>
             {isLoadingTable && <LoadingBar />}
           </div>
           <div>
-            <div className={`${styles.tableWrapper} custom-scroll`}>
+            <div
+              style={{ maxHeight: "350px", overflowY: "auto" }}
+              className="custom-scroll"
+            >
               {hasPermission(permissions, "Reminder", "View Reminders") && (
                 <Table hover responsive>
                 <thead className="sticky-header">
                   <tr>
                     <th></th>
                     <th
-                      className={`text-start ${styles.sortableTh}`}
+                      className="text-start"
                       onClick={() => handleSort("startDate")}
+                      style={{ cursor: "pointer" }}
                     >
                       Start Date{" "}
                       {sortColumn === "startDate" ? (
@@ -303,8 +305,9 @@ export default function AllDocTable() {
                       ) : null}
                     </th>
                     <th
-                      className={`text-start ${styles.sortableTh}`}
+                      className="text-start"
                       onClick={() => handleSort("endDate")}
+                      style={{ cursor: "pointer" }}
                     >
                       End Date{" "}
                       {sortColumn === "endDate" ? (
@@ -398,11 +401,9 @@ export default function AllDocTable() {
                       </tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={7} className={styles.noData}>
-                        <Paragraph text="No data available" color="#717182" />
-                      </td>
-                    </tr>
+                    <div className="text-start w-100 py-3">
+                      <Paragraph text="No data available" color="#333" />
+                    </div>
                   )}
                 </tbody>
               </Table>
@@ -410,13 +411,17 @@ export default function AllDocTable() {
               
             </div>
 
-            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
+            <div className="d-flex flex-column flex-lg-row paginationFooter">
               <div className="d-flex justify-content-between align-items-center">
-                <p className={`${styles.paginationLabel} mb-0`}>Items per page:</p>
+                <p className="pagintionText mb-0 me-2">Items per page:</p>
                 <Form.Select
                   onChange={handleItemsPerPageChange}
                   value={itemsPerPage}
-                  style={{ width: "100px" }}
+                  style={{
+                    width: "100px",
+                    padding: "5px 10px !important",
+                    fontSize: "12px",
+                  }}
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -424,7 +429,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className={styles.paginationInfo}>
+                <div className="pagination-info" style={{ fontSize: "14px" }}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -442,7 +447,6 @@ export default function AllDocTable() {
             </div>
           </div>
         </div>
-        </div>
       </DashboardLayout>
 
       <Modal
@@ -454,7 +458,10 @@ export default function AllDocTable() {
           <div className="d-flex flex-column">
             <div className="d-flex w-100 justify-content-end">
               <div className="col-11 d-flex flex-row">
-                <p className={`mb-0 ${styles.modalConfirmText}`}>
+                <p
+                  className="mb-0 text-danger"
+                  style={{ fontSize: "18px", color: "#333" }}
+                >
                   Are you sure you want to delete?
                 </p>
               </div>
@@ -466,21 +473,21 @@ export default function AllDocTable() {
                 />
               </div>
             </div>
-            <div className={styles.modalFooter}>
+            <div className="d-flex flex-row">
               <button
                 onClick={() => handleDeleteReminder(selectedDocumentId)}
-                className={styles.btnSave}
+                className="custom-icon-button button-success px-3 py-1 rounded me-2"
               >
-                <IoCheckmark fontSize={16} /> Yes
+                <IoCheckmark fontSize={16} className="me-1" /> Yes
               </button>
               <button
                 onClick={() => {
                   handleCloseModal("shareDeleteModel");
                   setSelectedDocumentId(null);
                 }}
-                className={styles.btnCancel}
+                className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} /> No
+                <MdOutlineCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </div>

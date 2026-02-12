@@ -1724,7 +1724,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
             {isLoadingTable && <LoadingBar />}
           </div>
           <div className={`${styles.resultsWrapper} custom-scroll`}>
-          <div className="row mt-1">
+          <div className="row mt-2">
           {paginatedData.length > 0 ? (
   paginatedData.map((item) => (
     <div key={item.id} className={`col-md-12 ${styles.resultCard}`}>

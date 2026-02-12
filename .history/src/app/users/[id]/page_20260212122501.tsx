@@ -167,7 +167,6 @@ export default function AllDocTable({ params }: Props) {
         setToastMessage("User Updated successfully!");
         setShowToast(true);
         setTimeout(() => setShowToast(false), 5000);
-        // setSuccess("Form submitted successfully");
       }
     } catch (error) {
       console.error("Error submitting form:", error);

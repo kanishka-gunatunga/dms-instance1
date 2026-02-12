@@ -107,7 +107,8 @@
   min-height: 320px;
   overflow-y: auto;
   overflow-x: hidden;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  padding-bottom: 1.5rem;
 }
 
 .resultCard {

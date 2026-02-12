@@ -321,7 +321,6 @@ export default function AllDocTable() {
                         type="email"
                         className={styles.formInput}
                         value={selectedItem?.email || ""}
-                        // onChange={(e) => setEmail(e.target.value)}
                         readOnly
                       />
                     </div>
