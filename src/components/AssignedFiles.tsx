@@ -49,7 +49,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     const columns: TableProps<AssignedDocument>['columns'] = [
         {
-            title: 'DOCUMENT',
+            title: 'Document',
             dataIndex: 'document_name',
             key: 'document_name',
             render: (text, record) => (
@@ -66,13 +66,13 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             ),
         },
         {
-            title: 'CATEGORY',
+            title: 'Category',
             dataIndex: 'category_name',
             key: 'category_name',
             render: (category) => <Tag>{category}</Tag>,
         },
         {
-            title: 'DUE DATE',
+            title: 'Due Date',
             dataIndex: 'expiration_date',
             key: 'expiration_date',
             render: (dueDate) => {
@@ -90,7 +90,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
             },
         },
         {
-            title: 'ACTIONS',
+            title: 'Actions',
             key: 'actions',
             align: 'left',
             render: (_, record) => (
@@ -188,7 +188,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     return (
         <>
-            <div className="bg-white h-100 calendarWrapper">
+            <div className="bg-white calendarWrapper h-100">
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div className="d-flex align-items-center gap-2">
                         <Image src="/jam_document.svg" alt="icon document" width={24} height={24}/>

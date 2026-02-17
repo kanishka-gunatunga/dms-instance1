@@ -34,6 +34,8 @@ import { useUserContext } from "@/context/userContext";
 import LoadingBar from "@/components/common/LoadingBar";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
+import styles from "./archived-documents.module.css";
+
 interface Category {
   category_name: string;
 }
@@ -313,32 +315,34 @@ export default function AllDocTable() {
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex justify-content-between align-items-center pt-2">
-          <Heading text="Archived Documents" color="#444" />
-        </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
-          <div className="d-flex flex-column flex-lg-row">
-            <div className="col-12 col-lg-6 d-flex flex-column flex-lg-row">
-              <div className="input-group mb-3 pe-lg-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search By Name Or Description"
-                  onChange={(e) => handleTermSearch(e.target.value)}
-                ></input>
+        <div className={styles.pageWrapper}>
+          <div className={styles.pageHeader}>
+            <Heading text="Archived Documents" color="#444" />
+          </div>
+          <div className={`d-flex flex-column ${styles.card}`}>
+            <div className={styles.filtersRow}>
+              <div className={styles.filterItem}>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search By Name Or Description"
+                    onChange={(e) => handleTermSearch(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="input-group mb-3 pe-lg-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search By Meta Tags"
-                  onChange={(e) => handleMetaSearch(e.target.value)}
-                ></input>
+              <div className={styles.filterItem}>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search By Meta Tags"
+                    onChange={(e) => handleMetaSearch(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="col-12 col-lg-6 d-flex flex-column flex-lg-row">
-              <div className="col-12 col-lg-6">
-                <div className="input-group mb-3">
+              <div className={styles.filterItem}>
+                <div className="input-group">
                   <DropdownButton
                     id="dropdown-category-button"
                     title={
@@ -371,8 +375,8 @@ export default function AllDocTable() {
                   </DropdownButton>
                 </div>
               </div>
-              <div className="col-12 col-lg-6 px-0 px-lg-2">
-                <div className="input-group mb-3">
+              <div className={styles.filterItem}>
+                <div className="input-group">
                   <DropdownButton
                     id="dropdown-storage-button"
                     title={filterData.storage || "Select Storage"}
@@ -395,15 +399,11 @@ export default function AllDocTable() {
                 </div>
               </div>
             </div>
-          </div>
           <div>
             {isLoadingTable && <LoadingBar />}
           </div>
           <div>
-            <div
-              style={{ maxHeight: "380px", overflowY: "auto" }}
-              className="custom-scroll"
-            >
+            <div className={`${styles.tableWrapper} custom-scroll`}>
               <Table hover responsive>
                 <thead className="sticky-header">
                   <tr>
@@ -412,9 +412,8 @@ export default function AllDocTable() {
                     <th className="text-start">Document Category</th>
                     <th className="text-start">Storage</th>
                     <th
-                      className="text-start"
+                      className={`text-start ${styles.sortableTh}`}
                       onClick={handleSort}
-                      style={{ cursor: "pointer" }}
                     >
                       Archived Date{" "}
                       {sortAsc ? (
@@ -467,25 +466,23 @@ export default function AllDocTable() {
                       </tr>
                     ))
                   ) : (
-                    <div className="text-start w-100 py-3">
-                      <Paragraph text="No data available" color="#333" />
-                    </div>
+                    <tr>
+                      <td colSpan={6} className={styles.noData}>
+                        <Paragraph text="No data available" color="#717182" />
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </Table>
             </div>
 
-            <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
               <div className="d-flex justify-content-between align-items-center">
-                <p className="pagintionText mb-0 me-2">Items per page:</p>
+                <p className={`${styles.paginationLabel} mb-0`}>Items per page:</p>
                 <Form.Select
                   onChange={handleItemsPerPageChange}
                   value={itemsPerPage}
-                  style={{
-                    width: "100px",
-                    padding: "5px 10px !important",
-                    fontSize: "12px",
-                  }}
+                  style={{ width: "100px" }}
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -493,7 +490,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className="pagination-info" style={{ fontSize: "14px" }}>
+                <div className={styles.paginationInfo}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -511,6 +508,7 @@ export default function AllDocTable() {
             </div>
           </div>
         </div>
+        </div>
       </DashboardLayout>
 
       <Modal
@@ -522,10 +520,7 @@ export default function AllDocTable() {
           <div className="d-flex flex-column">
             <div className="d-flex w-100 justify-content-end">
               <div className="col-11 d-flex flex-row py-3">
-                <p
-                  className="mb-0 text-danger"
-                  style={{ fontSize: "18px", color: "#333" }}
-                >
+                <p className={`mb-0 ${styles.modalConfirmText}`}>
                   Are you sure you want to restore?
                 </p>
               </div>
@@ -537,21 +532,21 @@ export default function AllDocTable() {
                 />
               </div>
             </div>
-            <div className="d-flex flex-row">
+            <div className={styles.modalFooter}>
               <button
                 onClick={() => handleRestore()}
-                className="custom-icon-button button-success px-3 py-1 rounded me-2"
+                className={styles.btnSave}
               >
-                <IoCheckmark fontSize={16} className="me-1" /> Yes
+                <IoCheckmark fontSize={16} /> Yes
               </button>
               <button
                 onClick={() => {
                   handleCloseModal("modelRestore");
                   setSelectedDocumentId(null);
                 }}
-                className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+                className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdOutlineCancel fontSize={16} /> No
               </button>
             </div>
           </div>
@@ -567,10 +562,7 @@ export default function AllDocTable() {
           <div className="d-flex flex-column">
             <div className="d-flex w-100 justify-content-end">
               <div className="col-11 d-flex flex-row">
-                <p
-                  className="mb-0 text-danger"
-                  style={{ fontSize: "18px", color: "#333" }}
-                >
+                <p className={`mb-0 ${styles.modalConfirmText}`}>
                   Are you sure you want to delete?
                 </p>
               </div>
@@ -583,14 +575,11 @@ export default function AllDocTable() {
               </div>
             </div>
             <div className="mt-1">
-              <p
-                className="mb-1 text-start w-100 text-danger"
-                style={{ fontSize: "14px" }}
-              >
+              <p className={`mb-1 text-start w-100 ${styles.modalWarningText}`}>
                 By deleting the document, it will no longer be accessible in the
                 future, and the following data will be deleted from the system:
               </p>
-              <ul>
+              <ul className={styles.modalWarningList}>
                 <li>Version History</li>
                 <li>Meta Tags</li>
                 <li>Comment</li>
@@ -599,21 +588,21 @@ export default function AllDocTable() {
                 <li>Permissions</li>
               </ul>
             </div>
-            <div className="d-flex flex-row">
+            <div className={styles.modalFooter}>
               <button
                 onClick={() => handleDeletePermenemt()}
-                className="custom-icon-button button-success px-3 py-1 rounded me-2"
+                className={styles.btnSave}
               >
-                <IoCheckmark fontSize={16} className="me-1" /> Yes
+                <IoCheckmark fontSize={16} /> Yes
               </button>
               <button
                 onClick={() => {
                   handleCloseModal("modelDeletePermenent");
                   setSelectedDocumentId(null);
                 }}
-                className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+                className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdOutlineCancel fontSize={16} /> No
               </button>
             </div>
           </div>
