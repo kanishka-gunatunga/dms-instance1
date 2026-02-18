@@ -224,7 +224,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             ],
         },
         {
-            name: "Reports",
+            name: "Security",
             url: "#",
             icon: <HiDocumentReport />,
             subItems: [
