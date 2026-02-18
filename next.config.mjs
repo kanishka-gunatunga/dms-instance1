@@ -33,7 +33,7 @@ const nextConfig = {
             base-uri 'self';
             object-src 'none';
             connect-src 'self' https://dms1.genaitech.dev;
-            img-src 'self' data: https:;
+            img-src 'self' data: https: blob:;
             script-src 'self' 'unsafe-inline' 'unsafe-eval';
             style-src 'self' 'unsafe-inline' https:;
             font-src 'self' https: data:;
