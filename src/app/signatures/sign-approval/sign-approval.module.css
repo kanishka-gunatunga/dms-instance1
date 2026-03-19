@@ -148,3 +148,22 @@
   background: #c24a0a !important;
   border-color: #c24a0a !important;
 }
+
+.btnView {
+  background: transparent !important;
+  border: 1px solid #EA580C !important;
+  color: #EA580C !important;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btnView:hover {
+  background: #FFF4E8 !important;
+  color: #c24a0a !important;
+}

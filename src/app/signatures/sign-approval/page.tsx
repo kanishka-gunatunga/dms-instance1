@@ -1,279 +1,238 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
-import { Table, Button, Modal, Form } from "react-bootstrap";
-import { IoFolderOutline, IoArrowBack, IoPersonAddOutline } from "react-icons/io5";
-import { fetchDocumentCategoryWithCount, fetchDocumentsData, fetchAndMapUserData } from "@/utils/dataFetchFunctions";
+import { Table, Button, Modal } from "react-bootstrap";
+import { FaRegFileAlt, FaSignature } from "react-icons/fa";
+import { IoClose, IoEyeOutline } from "react-icons/io5";
+import { MdOutlineCancel } from "react-icons/md";
+import Image from "next/image";
 import { useUserContext } from "@/context/userContext";
-import { postWithAuth } from "@/utils/apiClient";
-import ToastMessage from "@/components/common/Toast";
 import styles from "./sign-approval.module.css";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { UserDropdownItem } from "@/types/types";
 
-interface Category {
-  id: number;
-  category_name: string;
-  doc_count: number;
-}
-
-interface Document {
+interface SignedDocument {
   id: number;
   name: string;
-  category: { id: number; category_name: string };
-  created_date: string;
-  type: string;
+  category: { category_name: string };
+  signed_date: string;
+  // signed_by: string;
+  status: string;
 }
 
 const SignApprovalPage = () => {
-  const { userId } = useUserContext();
-  const [view, setView] = useState<"categories" | "documents">("categories");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Assign Modal states
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [users, setUsers] = useState<UserDropdownItem[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [isAssigning, setIsAssigning] = useState(false);
+  const { userName } = useUserContext();
+  const [modalStates, setModalStates] = useState({ viewModel: false });
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
+  const [viewDocument, setViewDocument] = useState<any>(null);
 
-  // Toast states
-  const [showToast, setShowToast] = useState(false);
-  const [toastType, setToastType] = useState<"success" | "error">("success");
-  const [toastMessage, setToastMessage] = useState("");
+  const handleCloseModal = (modalName: string) => {
+    setModalStates(prev => ({ ...prev, [modalName]: false }));
+  };
 
-  useEffect(() => {
-    loadCategories();
-    fetchAndMapUserData(setUsers);
-  }, []);
+  const currentDateTime = new Date().toLocaleString();
 
-  const loadCategories = async () => {
-    setLoading(true);
-    try {
-      // Mocking API call for frontend-only demo
-      // await fetchDocumentCategoryWithCount(setCategories);
-      setCategories([
-        { id: 1, category_name: "Invoices", doc_count: 3 },
-        { id: 2, category_name: "Contracts", doc_count: 5 },
-        { id: 3, category_name: "Reports", doc_count: 2 },
-        { id: 4, category_name: "HR Documents", doc_count: 4 }
-      ]);
-    } catch (error) {
-      console.error("Failed to load categories:", error);
-    } finally {
-      setLoading(false);
+  const handleViewOpen = (doc: SignedDocument) => {
+    setSelectedDocumentId(doc.id);
+    setViewDocument({
+      name: doc.name,
+      type: doc.name.split('.').pop()?.toLowerCase() || "pdf",
+      url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      enable_external_file_view: 0,
+    });
+    setModalStates({ viewModel: true });
+  };
+  const [documents] = useState<SignedDocument[]>([
+    {
+      id: 301,
+      name: "Q3_Financial_Report.pdf",
+      category: { category_name: "Finance" },
+      signed_date: new Date().toISOString(),
+      // signed_by: "Alice Smith",
+      status: "Signed",
+    },
+    {
+      id: 302,
+      name: "Vendor_Contract_ABC.pdf",
+      category: { category_name: "Legal" },
+      signed_date: new Date(Date.now() - 86400000).toISOString(),
+      // signed_by: "Bob Johnson",
+      status: "Signed",
+    },
+    {
+      id: 303,
+      name: "Employee_Handbook_2026.pdf",
+      category: { category_name: "HR" },
+      signed_date: new Date(Date.now() - 172800000).toISOString(),
+      // signed_by: "Charlie Brown",
+      status: "Signed",
     }
-  };
-
-  const handleCategoryClick = async (category: Category) => {
-    setSelectedCategory(category);
-    setView("documents");
-    setLoading(true);
-    try {
-      // Mocking API call for frontend-only demo
-      /*
-      await fetchDocumentsData((data: Document[]) => {
-        const filtered = data.filter(doc => doc.category?.id === category.id);
-        setDocuments(filtered);
-      });
-      */
-      const dummyDocs: Document[] = [
-        { id: 101, name: `${category.category_name}_Doc_A.pdf`, type: "pdf", created_date: new Date().toISOString(), category: { id: category.id, category_name: category.category_name } },
-        { id: 102, name: `${category.category_name}_Doc_B.png`, type: "png", created_date: new Date().toISOString(), category: { id: category.id, category_name: category.category_name } },
-      ];
-      setDocuments(dummyDocs);
-    } catch (error) {
-      console.error("Failed to load documents:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBack = () => {
-    setView("categories");
-    setSelectedCategory(null);
-    setDocuments([]);
-  };
-
-  const openAssignModal = (doc: Document) => {
-    setSelectedDoc(doc);
-    setSelectedUserIds([]);
-    setShowAssignModal(true);
-  };
-
-  const handleAssign = async () => {
-    if (selectedUserIds.length === 0 || !selectedDoc) return;
-
-    setIsAssigning(true);
-    try {
-      // Mocking successful assignment for frontend demo
-      /*
-      const formData = new FormData();
-      formData.append("type", "user");
-      formData.append("assigned_roles_or_users", JSON.stringify(selectedUserIds));
-      formData.append("user", userId || "");
-      formData.append("is_time_limited", "0");
-      formData.append("is_downloadable", "1");
-      formData.append("is_signature_request", "1"); 
-
-      const response = await postWithAuth(`document-share/${selectedDoc.id}`, formData);
-      */
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      setToastType("success");
-      setToastMessage(`Document assigned successfully to ${selectedUserIds.length} users.`);
-      setShowToast(true);
-      setShowAssignModal(false);
-      setSelectedUserIds([]);
-    } catch (error) {
-      setToastType("error");
-      setToastMessage("Failed to assign document for signature.");
-      setShowToast(true);
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
-  if (loading && view === "categories") return <LoadingSpinner />;
+  ]);
 
   return (
     <DashboardLayout>
       <div className={styles.pageWrapper}>
         <div className={styles.pageHeader}>
           <div className={styles.pageTitle}>
-            <Heading text={view === "categories" ? "Sign Approval - Categories" : `Sign Approval - ${selectedCategory?.category_name}`} color="#0A0A0A" />
+            <Heading text="Signed Documents" color="#0A0A0A" />
           </div>
         </div>
 
         <div className={styles.card}>
-          {view === "categories" ? (
-            <div className={styles.categoryGrid}>
-              {categories.map((cat) => (
-                <div key={cat.id} className={styles.categoryCard} onClick={() => handleCategoryClick(cat)}>
-                  <div className={styles.categoryIcon}>
-                    <IoFolderOutline />
-                  </div>
-                  <div className={styles.categoryName}>{cat.category_name}</div>
-                  <div className={styles.docCount}>{cat.doc_count} Documents</div>
-                </div>
-              ))}
+          {documents.length > 0 ? (
+            <div className={styles.tableWrapper}>
+              <Table hover responsive>
+                <thead>
+                  <tr>
+                    <th>Document Name</th>
+                    <th>Category</th>
+                    <th>Signed Date</th>
+                    {/* <th>Signed By</th> */}
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((doc) => (
+                    <tr key={doc.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <FaRegFileAlt className="me-2 text-muted" />
+                          {doc.name}
+                        </div>
+                      </td>
+                      <td>{doc.category?.category_name || "Uncategorized"}</td>
+                      <td>{new Date(doc.signed_date).toLocaleDateString()}</td>
+                      {/* <td>{doc.signed_by}</td> */}
+                      <td>
+                        <span className="badge bg-success" style={{ padding: "0.5em 0.7em" }}>
+                          {doc.status}
+                        </span>
+                      </td>
+                      <td>
+                        <Button
+                          className={styles.btnView}
+                          onClick={() => handleViewOpen(doc)}
+                        >
+                          <IoEyeOutline fontSize={16} /> View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
             </div>
           ) : (
-            <>
-              <button className={styles.backBtn} onClick={handleBack}>
-                <IoArrowBack /> Back to Categories
-              </button>
-              
-              <div className={styles.tableWrapper}>
-                <Table hover responsive>
-                  <thead>
-                    <tr>
-                      <th>Document Name</th>
-                      <th>Type</th>
-                      <th>Created Date</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {documents.length > 0 ? (
-                      documents.map((doc) => (
-                        <tr key={doc.id}>
-                          <td>{doc.name}</td>
-                          <td>{doc.type.toUpperCase()}</td>
-                          <td>{new Date(doc.created_date).toLocaleDateString()}</td>
-                          <td>
-                            <Button className={styles.btnAssign} onClick={() => openAssignModal(doc)}>
-                              <IoPersonAddOutline /> Assign to Sign
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="text-center py-4 text-muted">No documents found in this category.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </Table>
+            <div className={styles.noDataContainer}>
+              <div className={styles.noDataIcon}>
+                <FaSignature />
               </div>
-            </>
+              <p className={styles.noDataText}>No signed documents found.</p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Assign Modal */}
-      <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: "1.1rem", fontWeight: 600 }}>Assign for Signature</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="text-muted small mb-3">Select one or more users to request their electronic signature on <strong>{selectedDoc?.name}</strong>.</p>
-          
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <Form.Label className="small mb-0 font-weight-bold">Select Users</Form.Label>
-            <Button 
-                variant="link" 
-                className="p-0 small text-decoration-none"
+      <Modal
+        centered
+        show={modalStates.viewModel}
+        // className="large-model"
+        fullscreen
+        onHide={() => {
+          handleCloseModal("viewModel");
+          setSelectedDocumentId(null);
+        }}
+      >
+        <Modal.Header>
+          <div className="d-flex w-100 justify-content-end">
+            <div className="col-11 d-flex flex-row">
+              <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
+                View Document : {viewDocument?.name || ""}
+              </p>
+            </div>
+            <div className="col-1 d-flex  justify-content-end">
+              <IoClose
+                fontSize={20}
+                style={{ cursor: "pointer" }}
                 onClick={() => {
-                    if (selectedUserIds.length === users.length) {
-                        setSelectedUserIds([]);
-                    } else {
-                        setSelectedUserIds(users.map(u => u.id.toString()));
-                    }
+                  handleCloseModal("viewModel");
+                  // setMetaTags([])
                 }}
-            >
-                {selectedUserIds.length === users.length ? "Deselect All" : "Select All"}
-            </Button>
-          </div>
-
-          <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #eee", padding: "10px", borderRadius: "0.5rem" }}>
-            {users.map(u => (
-              <Form.Check 
-                key={u.id}
-                type="checkbox"
-                id={`user-${u.id}`}
-                label={u.user_name}
-                checked={selectedUserIds.includes(u.id.toString())}
-                onChange={(e) => {
-                  const id = u.id.toString();
-                  if (e.target.checked) {
-                    setSelectedUserIds([...selectedUserIds, id]);
-                  } else {
-                    setSelectedUserIds(selectedUserIds.filter(prev => prev !== id));
-                  }
-                }}
-                className="mb-2"
               />
-            ))}
+            </div>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="p-2 p-lg-4">
+          <div className="d-flex preview-container">
+            {viewDocument && (
+              <>
+                {/* Image Preview */}
+                {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
+                  <Image
+                    src={viewDocument.url}
+                    alt={viewDocument.name}
+                    width={600}
+                    height={600}
+                  />
+                ) :
+                  /* TXT / CSV / LOG Preview */
+                  ["txt", "csv", "log"].includes(viewDocument.type) ? (
+                    <div className="text-preview" style={{ width: "100%" }}>
+                      <iframe
+                        src={viewDocument.url}
+                        title="Text Preview"
+                        style={{
+                          width: "100%",
+                          height: "500px",
+                          border: "1px solid #ccc",
+                          background: "#fff"
+                        }}
+                      ></iframe>
+                    </div>
+                  ) :
+                    /* PDF or Office Docs */
+                    (viewDocument.type === "pdf" || viewDocument.enable_external_file_view === 1) ? (
+                      <div
+                        className="iframe-container"
+                        data-watermark={`Confidential\nDo Not Copy\n${userName}\n${currentDateTime}`}
+                      >
+                        <iframe
+                          src={
+                            viewDocument.type === "pdf"
+                              ? viewDocument.url
+                              : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewDocument.url)}`
+                          }
+                          title="Document Preview"
+                          style={{ width: "100%", height: "500px", border: "none" }}
+                        ></iframe>
+                      </div>
+                    ) : (
+                      <p>No preview available for this document type.</p>
+                    )}
+              </>
+            )}
           </div>
         </Modal.Body>
+
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAssignModal(false)} style={{ borderRadius: "0.5rem" }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleAssign} 
-            disabled={selectedUserIds.length === 0 || isAssigning}
-            style={{ backgroundColor: "#EA580C", borderColor: "#EA580C", borderRadius: "0.5rem" }}
-          >
-            {isAssigning ? "Assigning..." : "Confirm Assignment"}
-          </Button>
+          <div className="d-flex flex-row justify-content-start">
+            <button
+              onClick={() => {
+                handleCloseModal("viewModel");
+                setSelectedDocumentId(null);
+                // setMetaTags([])
+              }}
+              className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+            >
+              <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+            </button>
+          </div>
         </Modal.Footer>
       </Modal>
 
-      <ToastMessage
-        show={showToast}
-        onClose={() => setShowToast(false)}
-        type={toastType}
-        message={toastMessage}
-      />
     </DashboardLayout>
   );
 };

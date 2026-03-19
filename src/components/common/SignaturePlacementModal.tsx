@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -81,7 +85,6 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       setLocalSignatureUrl(localUrl);
     } catch (error) {
       console.error("Signature prefetch failed:", error);
-      // We don't set previewError here yet, we'll try to load it via img tag directly as fallback
     }
   };
 
@@ -117,7 +120,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       const containerWidth = rect.width;
       const scaledPageHeight = (pdfMetadata.height / pdfMetadata.width) * containerWidth;
       const pageIndex = Math.floor(y / scaledPageHeight);
-      
+
       if (pageIndex < pdfMetadata.pageCount) {
         setPlacements(prev => [...prev, { x, y, pageIndex }]);
       }
@@ -170,7 +173,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     for (const placement of placements) {
       const targetPage = pages[placement.pageIndex];
       const { width, height } = targetPage.getSize();
-      
+
       const pdfX = (placement.x / containerWidth) * width;
       const scaledPageHeight = (pdfMetadata!.height / pdfMetadata!.width) * containerWidth;
       const yOnPage = placement.y % scaledPageHeight;
@@ -184,18 +187,17 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       });
     }
 
-    // --- Cryptographic Digital Signature ---
     const visualSignedPdfBytes = await pdfDoc.save();
     if (userKeys) {
-        const cryptoSig = await signData(visualSignedPdfBytes.buffer as ArrayBuffer, userKeys.privateKey);
-        const base64Sig = arrayBufferToBase64(cryptoSig);
-        
-        pdfDoc.setKeywords(["X-DMS-Signature:" + base64Sig, "X-DMS-Signed:true"]);
-        pdfDoc.setProducer("DMS Secure Digital Signer");
-        pdfDoc.setAuthor("Authenticated DMS User");
-        pdfDoc.setModificationDate(new Date());
+      const cryptoSig = await signData(visualSignedPdfBytes.buffer as ArrayBuffer, userKeys.privateKey);
+      const base64Sig = arrayBufferToBase64(cryptoSig);
+
+      pdfDoc.setKeywords(["X-DMS-Signature:" + base64Sig, "X-DMS-Signed:true"]);
+      pdfDoc.setProducer("DMS Secure Digital Signer");
+      pdfDoc.setAuthor("Authenticated DMS User");
+      pdfDoc.setModificationDate(new Date());
     }
-    
+
     const finalPdfBytes = await pdfDoc.save();
     const blob = new Blob([finalPdfBytes as any], { type: "application/pdf" });
     const file = new File([blob], "signed_document.pdf", { type: "application/pdf" });
@@ -238,16 +240,14 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       ctx.drawImage(sigImg, drawX - 75, drawY - 37.5, 150, 75);
     }
 
-    // For images, we add a small visual indicator of the crypto signature
     if (userKeys) {
-        ctx.font = "12px Arial";
-        ctx.fillStyle = "rgba(0,0,0,0.3)";
-        ctx.fillText("Cryptographically Secured by DMS", 10, canvas.height - 10);
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillText("Cryptographically Secured by DMS", 10, canvas.height - 10);
     }
 
     canvas.toBlob(async (blob) => {
       if (blob) {
-        // We could also sign the image blob here if we wanted to store the signature elsewhere
         const file = new File([blob], "signed_document.png", { type: "image/png" });
         onSave(file);
       }
@@ -258,51 +258,51 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     if (previewError) {
       return (
         <div className="d-flex flex-column justify-content-center align-items-center bg-light" style={{ height: "600px" }}>
-            <p className="text-danger mb-0">{previewError}</p>
-            <small className="text-muted text-center px-4 mt-2">
-                This document preview cannot be loaded directly here. <br/>
-                You can still click on the grey area below to place signatures blindly if you know where they should go, but we recommend checking the document URL.
-            </small>
+          <p className="text-danger mb-0">{previewError}</p>
+          <small className="text-muted text-center px-4 mt-2">
+            This document preview cannot be loaded directly here. <br />
+            You can still click on the grey area below to place signatures blindly if you know where they should go, but we recommend checking the document URL.
+          </small>
         </div>
       );
     }
 
     if (documentType.toLowerCase() === "pdf") {
       const aspectRatio = pdfMetadata ? (pdfMetadata.height / pdfMetadata.width) : 1.414;
-      
+
       return (
-        <div 
-          className="iframe-container" 
-          style={{ 
-            height: "600px", 
-            overflowY: "auto", 
+        <div
+          className="iframe-container"
+          style={{
+            height: "600px",
+            overflowY: "auto",
             position: "relative",
             backgroundColor: "#525659"
           }}
         >
-          <div 
+          <div
             ref={containerRef}
             onClick={handleContainerClick}
-            style={{ 
-              position: "relative", 
-              width: "100%", 
+            style={{
+              position: "relative",
+              width: "100%",
               cursor: "crosshair",
-              height: pdfMetadata ? `calc(${pdfMetadata.pageCount} * (100% * ${aspectRatio}))` : "2000px" 
+              height: pdfMetadata ? `calc(${pdfMetadata.pageCount} * (100% * ${aspectRatio}))` : "2000px"
             }}
           >
-            <iframe 
-              src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
-              style={{ 
-                width: "100%", 
-                height: "100%", 
-                border: "none", 
+            <iframe
+              src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
                 pointerEvents: "none",
                 display: "block"
               }}
               onError={() => setPreviewError("Iframe loading failed.")}
             />
             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5 }} />
-            
+
             {placements.map((p, i) => (
               <div key={i} style={{
                 position: "absolute",
@@ -312,10 +312,10 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
                 pointerEvents: "none",
                 zIndex: 10
               }}>
-                <img 
-                  src={localSignatureUrl || signatureUrl} 
-                  alt="signature" 
-                  style={{ width: "100px", height: "auto", border: "1px dashed #ea580c", backgroundColor: "rgba(255,255,255,0.5)" }} 
+                <img
+                  src={localSignatureUrl || signatureUrl}
+                  alt="signature"
+                  style={{ width: "100px", height: "auto", border: "1px dashed #ea580c", backgroundColor: "rgba(255,255,255,0.5)" }}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     if (!target.src.includes('placeholder')) {
@@ -331,21 +331,21 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     }
 
     return (
-      <div 
+      <div
         ref={containerRef}
         onClick={handleContainerClick}
-        style={{ 
-          position: "relative", 
-          cursor: "crosshair", 
+        style={{
+          position: "relative",
+          cursor: "crosshair",
           border: "1px solid #ddd",
           maxHeight: "600px",
           overflowY: "auto",
           backgroundColor: "#f8f9fa"
         }}
       >
-        <img 
-          src={documentUrl} 
-          alt="document" 
+        <img
+          src={documentUrl}
+          alt="document"
           crossOrigin="anonymous"
           style={{ width: "100%", height: "auto", display: "block" }}
           onError={() => setPreviewError("Failed to load image preview.")}
@@ -358,14 +358,14 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
             transform: "translate(-50%, -50%)",
             pointerEvents: "none"
           }}>
-            <img 
-              src={localSignatureUrl || signatureUrl} 
-              alt="signature" 
-              style={{ width: "100px", height: "auto", border: "1px dashed #ea580c" }} 
+            <img
+              src={localSignatureUrl || signatureUrl}
+              alt="signature"
+              style={{ width: "100px", height: "auto", border: "1px dashed #ea580c" }}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 if (!target.src.includes('placeholder')) {
-                   target.src = "https://via.placeholder.com/100x50?text=Signature";
+                  target.src = "https://via.placeholder.com/100x50?text=Signature";
                 }
               }}
             />
@@ -400,7 +400,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
           </small>
           {placements.length > 0 && (
             <Button variant="link" size="sm" onClick={handleUndo} className="p-0 text-danger text-decoration-none">
-                Undo Last
+              Undo Last
             </Button>
           )}
         </div>
@@ -416,11 +416,11 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
         <Button variant="secondary" onClick={onHide}>
           Cancel
         </Button>
-        <Button 
-            variant="primary" 
-            onClick={handleSave} 
-            disabled={placements.length === 0 || isProcessing}
-            style={{ backgroundColor: "#ea580c", borderColor: "#ea580c" }}
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={placements.length === 0 || isProcessing}
+          style={{ backgroundColor: "#ea580c", borderColor: "#ea580c" }}
         >
           {isProcessing ? "Saving..." : "Save Signed Document"}
         </Button>
