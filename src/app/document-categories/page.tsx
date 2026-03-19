@@ -38,6 +38,9 @@ import { deleteWithAuth, getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
 import { IoMdCloudDownload } from "react-icons/io";
+import { Checkbox, DatePicker, DatePickerProps } from "antd";
+import { formatDateForSQL } from "@/utils/commonFunctions";
+import { RoleDropdownItem } from "@/types/types";
 import styles from "./document-categories.module.css";
 
 interface Category {
@@ -82,10 +85,13 @@ export default function AllDocTable() {
   const [excelGenerated, setExcelGenerated] = useState(false);
   const [excelGeneratedLink, setExcelGeneratedLink] = useState("");
   const [errors, setErrors] = useState<any>({});
-  const [users, setUsers] = useState<UserDropdownItem[]>([]);
+  const [userDropDownData, setUserDropDownData] = useState<UserDropdownItem[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>("none");
+  const [users, setUsers] = useState<string[]>([]);
+
+  const [roleDropDownData, setRoleDropDownData] = useState<RoleDropdownItem[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
 
   const [modalStates, setModalStates] = useState({
     addCategory: false,
@@ -97,8 +103,8 @@ export default function AllDocTable() {
   useEffect(() => {
     fetchCategoryChildrenData(setDummyData);
     fetchCategoryData(setCategoryDropDownData);
-    fetchAndMapUserData(setUsers);
-    fetchRoleData(setRoles);
+    fetchAndMapUserData(setUserDropDownData);
+    fetchRoleData(setRoleDropDownData);
   }, []);
 
   useEffect(() => {
@@ -117,6 +123,38 @@ export default function AllDocTable() {
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
+  };
+
+  const handleRoleSelect = (roleId: string) => {
+    const selectedRole = roleDropDownData.find((role) => role.id.toString() === roleId);
+    if (selectedRole && !selectedRoleIds.includes(roleId)) {
+      setSelectedRoleIds([...selectedRoleIds, roleId]);
+      setRoles([...roles, selectedRole.role_name]);
+    }
+  };
+
+  const handleRemoveRole = (roleName: string) => {
+    const roleToRemove = roleDropDownData.find((role) => role.role_name === roleName);
+    if (roleToRemove) {
+      setSelectedRoleIds(selectedRoleIds.filter((id) => id !== roleToRemove.id.toString()));
+      setRoles(roles.filter((r) => r !== roleName));
+    }
+  };
+
+  const handleUserSelect = (userId: string) => {
+    const selectedUser = userDropDownData.find((user) => user.id.toString() === userId);
+    if (selectedUser && !selectedUserIds.includes(userId)) {
+      setSelectedUserIds([...selectedUserIds, userId]);
+      setUsers([...users, selectedUser.user_name]);
+    }
+  };
+
+  const handleUserRole = (userName: string) => {
+    const userToRemove = userDropDownData.find((user) => user.user_name === userName);
+    if (userToRemove) {
+      setSelectedUserIds(selectedUserIds.filter((id) => id !== userToRemove.id.toString()));
+      setUsers(users.filter((r) => r !== userName));
+    }
   };
 
   const handleEditCategorySelect = (value: string) => {
@@ -223,8 +261,8 @@ export default function AllDocTable() {
     formData.append("category_name", category_name || "");
     formData.append("description", description);
     formData.append("attribute_data", JSON.stringify(attributeData));
-    formData.append("role", selectedRole === "none" ? "" : selectedRole);
-    formData.append("users", JSON.stringify(selectedUserIds));
+    formData.append("signing_roles", JSON.stringify(selectedRoleIds));
+    formData.append("signing_users", JSON.stringify(selectedUserIds));
 
     try {
 
@@ -257,7 +295,9 @@ export default function AllDocTable() {
         setSelectedCategoryId("none")
         setDescription("")
         setSelectedUserIds([])
-        setSelectedRole("none")
+        setUsers([])
+        setSelectedRoleIds([])
+        setRoles([])
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add category!");
@@ -301,8 +341,8 @@ export default function AllDocTable() {
       formData.append("description", description);
 
       formData.append("attribute_data", JSON.stringify(attributeData));
-      formData.append("role", selectedRole === "none" ? "" : selectedRole);
-      formData.append("users", JSON.stringify(selectedUserIds));
+      formData.append("signing_roles", JSON.stringify(selectedRoleIds));
+      formData.append("signing_users", JSON.stringify(selectedUserIds));
 
       // formData.forEach((value, key) => {
       //   console.log(`${key}: ${value}`);
@@ -333,7 +373,9 @@ export default function AllDocTable() {
         setSelectedCategoryId("none")
         setDescription("")
         setSelectedUserIds([])
-        setSelectedRole("none")
+        setUsers([])
+        setSelectedRoleIds([])
+        setRoles([])
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add child category!");
@@ -412,8 +454,8 @@ export default function AllDocTable() {
       formData.append("category_name", editData.category_name || "");
       formData.append("description", editData.description);
       formData.append("attribute_data", JSON.stringify(attributeData));
-      formData.append("role", selectedRole === "none" ? "" : selectedRole);
-      formData.append("users", JSON.stringify(selectedUserIds));
+      formData.append("signing_roles", JSON.stringify(selectedRoleIds));
+      formData.append("signing_users", JSON.stringify(selectedUserIds));
 
       formData.forEach((value, key) => {
         console.log(`${key}: ${value}`);
@@ -430,7 +472,9 @@ export default function AllDocTable() {
         setSelectedCategoryId("none")
         setDescription("")
         setSelectedUserIds([])
-        setSelectedRole("none")
+        setUsers([])
+        setSelectedRoleIds([])
+        setRoles([])
         setEditData(initialState)
 
         setToastType("success");
@@ -450,7 +494,9 @@ export default function AllDocTable() {
         setSelectedCategoryId("none")
         setDescription("")
         setSelectedUserIds([])
-        setSelectedRole("none")
+        setUsers([])
+        setSelectedRoleIds([])
+        setRoles([])
         setEditData(initialState)
 
         setToastType("error");
@@ -826,7 +872,8 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
-          setSelectedRole("none")
+          setSelectedRoleIds([])
+          // setSelectedRole([])
           setEditData(initialState)
         }}
       >
@@ -850,7 +897,8 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
-                  setSelectedRole("none")
+                  setSelectedRoleIds([])
+                  // setSelectedRole([])
                   setEditData(initialState)
                 }}
               />
@@ -926,50 +974,91 @@ export default function AllDocTable() {
               />
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Role</p>
-              <DropdownButton
-                id="dropdown-role-button"
-                title={
-                  selectedRole === "none"
-                    ? "None"
-                    : roles.find((r) => r.id.toString() === selectedRole)?.role_name || "Select Role"
-                }
-                className="custom-dropdown-text-start text-start w-100"
-                onSelect={(value) => setSelectedRole(value || "none")}
-              >
-                <Dropdown.Item key="none" eventKey="none" style={{ fontWeight: "bold", marginLeft: "0px" }}>None</Dropdown.Item>
-                {roles.map((r) => (
-                  <Dropdown.Item key={r.id} eventKey={r.id.toString()} style={{ fontWeight: "bold", marginLeft: "0px" }}>
-                    {r.role_name}
-                  </Dropdown.Item>
-                ))}
-              </DropdownButton>
-            </div>
-            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Users</p>
-              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #dee2e6", padding: "10px", borderRadius: "0.25rem" }}>
-                {users.map((u) => (
-                  <div key={u.id} className="mb-2 d-flex align-items-center">
-                    <input
-                      type="checkbox"
-                      id={`addcat-user-${u.id}`}
-                      checked={selectedUserIds.includes(u.id.toString())}
-                      onChange={(e) => {
-                        const id = u.id.toString();
-                        if (e.target.checked) {
-                          setSelectedUserIds([...selectedUserIds, id]);
-                        } else {
-                          setSelectedUserIds(selectedUserIds.filter(prev => prev !== id));
-                        }
-                      }}
-                      style={{ marginRight: "8px", transform: "scale(1.2)" }}
-                    />
-                    <label htmlFor={`addcat-user-${u.id}`} style={{ cursor: "pointer", marginBottom: 0 }}>
-                      {u.user_name}
-                    </label>
-                  </div>
-                ))}
+              <label className={styles.formLabel}>Assign roles</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-roles-button"
+                  title={
+                    roles.length > 0 ? roles.join(", ") : "Select Roles"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleRoleSelect(value);
+                  }}
+                >
+                  {roleDropDownData.length > 0 ? (
+                    roleDropDownData.map((role) => (
+                      <Dropdown.Item key={role.id} eventKey={role.id.toString()}>
+                        {role.role_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No Roles available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {roles.map((role, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {role}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleRemoveRole(role)}
+                      />
+                    </span>
+                  ))}
+                </div>
               </div>
+
+            </div>
+
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <label className={styles.formLabel}>Assign Users</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-users-button"
+                  title={
+                    users.length > 0 ? users.join(", ") : "Select Users"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleUserSelect(value);
+                  }}
+                >
+                  {userDropDownData.length > 0 ? (
+                    userDropDownData.map((user) => (
+                      <Dropdown.Item key={user.id} eventKey={user.id.toString()}>
+                        {user.user_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No users available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {users.map((user, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {user}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleUserRole(user)}
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
               <p className={styles.formLabel}>
@@ -1041,7 +1130,8 @@ export default function AllDocTable() {
                 setSelectedCategoryId("none")
                 setDescription("")
                 setSelectedUserIds([])
-                setSelectedRole("none")
+                setSelectedRoleIds([])
+                // setSelectedRole("none")
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -1064,7 +1154,8 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
-          setSelectedRole("none")
+          setSelectedRoleIds([])
+          // setSelectedRole("none")
           setEditData(initialState)
         }}
       >
@@ -1088,7 +1179,7 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
-                  setSelectedRole("none")
+                  setSelectedRoleIds([])
                   setEditData(initialState)
                 }}
               />
@@ -1166,50 +1257,91 @@ export default function AllDocTable() {
               />
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Role</p>
-              <DropdownButton
-                id="dropdown-role-button-child"
-                title={
-                  selectedRole === "none"
-                    ? "None"
-                    : roles.find((r) => r.id.toString() === selectedRole)?.role_name || "Select Role"
-                }
-                className="custom-dropdown-text-start text-start w-100"
-                onSelect={(value) => setSelectedRole(value || "none")}
-              >
-                <Dropdown.Item key="none" eventKey="none" style={{ fontWeight: "bold", marginLeft: "0px" }}>None</Dropdown.Item>
-                {roles.map((r) => (
-                  <Dropdown.Item key={r.id} eventKey={r.id.toString()} style={{ fontWeight: "bold", marginLeft: "0px" }}>
-                    {r.role_name}
-                  </Dropdown.Item>
-                ))}
-              </DropdownButton>
-            </div>
-            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Users</p>
-              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #dee2e6", padding: "10px", borderRadius: "0.25rem" }}>
-                {users.map((u) => (
-                  <div key={u.id} className="mb-2 d-flex align-items-center">
-                    <input
-                      type="checkbox"
-                      id={`addchild-user-${u.id}`}
-                      checked={selectedUserIds.includes(u.id.toString())}
-                      onChange={(e) => {
-                        const id = u.id.toString();
-                        if (e.target.checked) {
-                          setSelectedUserIds([...selectedUserIds, id]);
-                        } else {
-                          setSelectedUserIds(selectedUserIds.filter(prev => prev !== id));
-                        }
-                      }}
-                      style={{ marginRight: "8px", transform: "scale(1.2)" }}
-                    />
-                    <label htmlFor={`addchild-user-${u.id}`} style={{ cursor: "pointer", marginBottom: 0 }}>
-                      {u.user_name}
-                    </label>
-                  </div>
-                ))}
+              <label className={styles.formLabel}>Assign roles</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-roles-button-child"
+                  title={
+                    roles.length > 0 ? roles.join(", ") : "Select Roles"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleRoleSelect(value);
+                  }}
+                >
+                  {roleDropDownData.length > 0 ? (
+                    roleDropDownData.map((role) => (
+                      <Dropdown.Item key={role.id} eventKey={role.id.toString()}>
+                        {role.role_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No Roles available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {roles.map((role, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {role}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleRemoveRole(role)}
+                      />
+                    </span>
+                  ))}
+                </div>
               </div>
+
+            </div>
+
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <label className={styles.formLabel}>Assign Users</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-users-button-child"
+                  title={
+                    users.length > 0 ? users.join(", ") : "Select Users"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleUserSelect(value);
+                  }}
+                >
+                  {userDropDownData.length > 0 ? (
+                    userDropDownData.map((user) => (
+                      <Dropdown.Item key={user.id} eventKey={user.id.toString()}>
+                        {user.user_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No users available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {users.map((user, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {user}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleUserRole(user)}
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2 ${styles.formGroup}`}>
               <p className={styles.formLabel}>
@@ -1281,7 +1413,7 @@ export default function AllDocTable() {
                 setSelectedCategoryId("none")
                 setDescription("")
                 setSelectedUserIds([])
-                setSelectedRole("none")
+                setSelectedRoleIds([])
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -1304,7 +1436,7 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
-          setSelectedRole("none")
+          setSelectedRoleIds([])
           setEditData(initialState)
         }}
       >
@@ -1328,7 +1460,7 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
-                  setSelectedRole("none")
+                  setSelectedRoleIds([])
                   setEditData(initialState)
                 }}
               />
@@ -1416,50 +1548,91 @@ export default function AllDocTable() {
               />
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Role</p>
-              <DropdownButton
-                id="dropdown-role-button-edit"
-                title={
-                  selectedRole === "none"
-                    ? "None"
-                    : roles.find((r) => r.id.toString() === selectedRole)?.role_name || "Select Role"
-                }
-                className="custom-dropdown-text-start text-start w-100"
-                onSelect={(value) => setSelectedRole(value || "none")}
-              >
-                <Dropdown.Item key="none" eventKey="none" style={{ fontWeight: "bold", marginLeft: "0px" }}>None</Dropdown.Item>
-                {roles.map((r) => (
-                  <Dropdown.Item key={r.id} eventKey={r.id.toString()} style={{ fontWeight: "bold", marginLeft: "0px" }}>
-                    {r.role_name}
-                  </Dropdown.Item>
-                ))}
-              </DropdownButton>
-            </div>
-            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-              <p className={styles.formLabel}>Select Users</p>
-              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #dee2e6", padding: "10px", borderRadius: "0.25rem" }}>
-                {users.map((u) => (
-                  <div key={u.id} className="mb-2 d-flex align-items-center">
-                    <input
-                      type="checkbox"
-                      id={`edit-user-${u.id}`}
-                      checked={selectedUserIds.includes(u.id.toString())}
-                      onChange={(e) => {
-                        const id = u.id.toString();
-                        if (e.target.checked) {
-                          setSelectedUserIds([...selectedUserIds, id]);
-                        } else {
-                          setSelectedUserIds(selectedUserIds.filter(prev => prev !== id));
-                        }
-                      }}
-                      style={{ marginRight: "8px", transform: "scale(1.2)" }}
-                    />
-                    <label htmlFor={`edit-user-${u.id}`} style={{ cursor: "pointer", marginBottom: 0 }}>
-                      {u.user_name}
-                    </label>
-                  </div>
-                ))}
+              <label className={styles.formLabel}>Assign roles</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-roles-button-edit"
+                  title={
+                    roles.length > 0 ? roles.join(", ") : "Select Roles"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleRoleSelect(value);
+                  }}
+                >
+                  {roleDropDownData.length > 0 ? (
+                    roleDropDownData.map((role) => (
+                      <Dropdown.Item key={role.id} eventKey={role.id.toString()}>
+                        {role.role_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No Roles available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {roles.map((role, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {role}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleRemoveRole(role)}
+                      />
+                    </span>
+                  ))}
+                </div>
               </div>
+
+            </div>
+
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <label className={styles.formLabel}>Assign Users</label>
+              <div className="d-flex flex-column position-relative">
+                <DropdownButton
+                  id="dropdown-users-button-edit"
+                  title={
+                    users.length > 0 ? users.join(", ") : "Select Users"
+                  }
+                  className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                  onSelect={(value) => {
+                    if (value) handleUserSelect(value);
+                  }}
+                >
+                  {userDropDownData.length > 0 ? (
+                    userDropDownData.map((user) => (
+                      <Dropdown.Item key={user.id} eventKey={user.id.toString()}>
+                        {user.user_name}
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>
+                      No users available
+                    </Dropdown.Item>
+                  )}
+                </DropdownButton>
+
+                <div className="mt-1">
+                  {users.map((user, index) => (
+                    <span
+                      key={index}
+                      className={styles.badge}
+                    >
+                      {user}
+                      <IoClose
+                        className={styles.badgeClose}
+                        onClick={() => handleUserRole(user)}
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+
             </div>
             <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 ${styles.formGroup}`}>
               <p className={styles.formLabel}>
