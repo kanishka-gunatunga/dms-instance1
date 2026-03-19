@@ -37,6 +37,7 @@ const SignRequestsPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [toastMessage, setToastMessage] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
 
   useEffect(() => {
@@ -147,7 +148,7 @@ const SignRequestsPage = () => {
       setToastMessage("An error occurred while saving the signed document!");
       setShowToast(true);
     } finally {
-      // Done processing
+      setIsProcessing(false);
     }
   };
 
