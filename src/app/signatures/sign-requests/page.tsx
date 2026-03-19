@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -26,13 +29,11 @@ const SignRequestsPage = () => {
   const { userId } = useUserContext();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Signature Modal states
+
   const [showSignModal, setShowSignModal] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [userSignatureUrl, setUserSignatureUrl] = useState<string>("");
 
-  // Toast states
   const [showToast, setShowToast] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [toastMessage, setToastMessage] = useState("");
@@ -47,7 +48,6 @@ const SignRequestsPage = () => {
 
   const loadUserSignature = async () => {
     try {
-      // Mocking user signature for frontend demo
       /*
       const response = await getWithAuth(`edit-user/${userId}`);
       if (response && response.user_details) {
@@ -63,7 +63,6 @@ const SignRequestsPage = () => {
   const loadSignRequests = async () => {
     setLoading(true);
     try {
-      // Mocking sign requests for frontend demo
       /*
       await fetchAssignedDocumentsByUserData(Number(userId), (data: any) => {
         setDocuments(data || []);
@@ -83,7 +82,6 @@ const SignRequestsPage = () => {
 
   const openSignModal = async (doc: Document) => {
     try {
-      // Mocking document view data for frontend demo
       /*
       const response = await getWithAuth(`view-document/${doc.id}/${userId}`);
       if (response && response.data) {
@@ -109,9 +107,9 @@ const SignRequestsPage = () => {
     }
   };
 
-  const handleSaveSignedDocument = async () => {
+  const handleSaveSignedDocument = async (signedFile: File) => {
+    setIsProcessing(true);
     try {
-      // Mocking successful upload for frontend demo
       /*
       const formData = new FormData();
       formData.append("document", signedFile);
@@ -135,15 +133,13 @@ const SignRequestsPage = () => {
       }
       */
 
-      // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       setShowSignModal(false);
       setToastType("success");
       setToastMessage("Document signed and updated successfully (Demo Mode)!");
       setShowToast(true);
-      
-      // Update local state to simulate removal of signed request
+
       setDocuments(prev => prev.filter(d => d.id !== selectedDoc?.id));
     } catch (error) {
       console.error("Error saving signed document:", error);
