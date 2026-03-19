@@ -429,6 +429,43 @@ export default function AllDocTable() {
 
         setattributeData(parsedAttributes);
         setEditData(response);
+
+        // Populate roles
+        if (response.signing_roles) {
+          try {
+            const roleIds = typeof response.signing_roles === 'string' 
+              ? JSON.parse(response.signing_roles) 
+              : response.signing_roles;
+            if (Array.isArray(roleIds)) {
+              setSelectedRoleIds(roleIds);
+              const mappedRoles = roleIds.map(id => 
+                roleDropDownData.find(r => r.id.toString() === id.toString())?.role_name
+              ).filter(Boolean) as string[];
+              setRoles(mappedRoles);
+            }
+          } catch (e) {
+            console.error("Failed to parse signing_roles:", e);
+          }
+        }
+
+        // Populate users
+        if (response.signing_users) {
+          try {
+            const userIds = typeof response.signing_users === 'string' 
+              ? JSON.parse(response.signing_users) 
+              : response.signing_users;
+            if (Array.isArray(userIds)) {
+              setSelectedUserIds(userIds);
+              const mappedUsers = userIds.map(id => 
+                userDropDownData.find(u => u.id.toString() === id.toString())?.user_name
+              ).filter(Boolean) as string[];
+              setUsers(mappedUsers);
+            }
+          } catch (e) {
+            console.error("Failed to parse signing_users:", e);
+          }
+        }
+
         console.log("category data::: ", response);
       }
     } catch (error) {
@@ -872,7 +909,9 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
+          setUsers([])
           setSelectedRoleIds([])
+          setRoles([])
           // setSelectedRole([])
           setEditData(initialState)
         }}
@@ -897,7 +936,9 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
+                  setUsers([])
                   setSelectedRoleIds([])
+                  setRoles([])
                   // setSelectedRole([])
                   setEditData(initialState)
                 }}
@@ -1130,7 +1171,9 @@ export default function AllDocTable() {
                 setSelectedCategoryId("none")
                 setDescription("")
                 setSelectedUserIds([])
+                setUsers([])
                 setSelectedRoleIds([])
+                setRoles([])
                 // setSelectedRole("none")
                 setEditData(initialState)
               }}
@@ -1154,7 +1197,9 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
+          setUsers([])
           setSelectedRoleIds([])
+          setRoles([])
           // setSelectedRole("none")
           setEditData(initialState)
         }}
@@ -1179,7 +1224,9 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
+                  setUsers([])
                   setSelectedRoleIds([])
+                  setRoles([])
                   setEditData(initialState)
                 }}
               />
@@ -1413,7 +1460,9 @@ export default function AllDocTable() {
                 setSelectedCategoryId("none")
                 setDescription("")
                 setSelectedUserIds([])
+                setUsers([])
                 setSelectedRoleIds([])
+                setRoles([])
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -1436,7 +1485,9 @@ export default function AllDocTable() {
           setSelectedCategoryId("none")
           setDescription("")
           setSelectedUserIds([])
+          setUsers([])
           setSelectedRoleIds([])
+          setRoles([])
           setEditData(initialState)
         }}
       >
@@ -1460,7 +1511,9 @@ export default function AllDocTable() {
                   setSelectedCategoryId("none")
                   setDescription("")
                   setSelectedUserIds([])
+                  setUsers([])
                   setSelectedRoleIds([])
+                  setRoles([])
                   setEditData(initialState)
                 }}
               />
@@ -1704,6 +1757,10 @@ export default function AllDocTable() {
                 setCategoryName("")
                 setSelectedCategoryId("none")
                 setDescription("")
+                setSelectedUserIds([])
+                setUsers([])
+                setSelectedRoleIds([])
+                setRoles([])
                 setEditData(initialState)
               }}
               className={styles.btnCancel}

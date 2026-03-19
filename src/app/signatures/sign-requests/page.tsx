@@ -54,6 +54,7 @@ const SignRequestsPage = () => {
     try {
       const response = await getWithAuth("pending-signatures");
       if (Array.isArray(response)) {
+        console.log("response", response);
         setDocuments(response);
       } else {
         console.warn("Pending signatures response is not an array:", response);
@@ -110,7 +111,7 @@ const SignRequestsPage = () => {
         setToastType("success");
         setToastMessage("Document signed and updated successfully!");
         setShowToast(true);
-        loadSignRequests(); // Refresh the list
+        loadSignRequests();
       } else {
         setToastType("error");
         setToastMessage(response.message || "Failed to save the signed document!");
