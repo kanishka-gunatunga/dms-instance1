@@ -3,7 +3,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
 import { Table, Button, Modal } from "react-bootstrap";
@@ -12,6 +12,8 @@ import { IoClose, IoEyeOutline } from "react-icons/io5";
 import { MdOutlineCancel } from "react-icons/md";
 import Image from "next/image";
 import { useUserContext } from "@/context/userContext";
+import { getWithAuth } from "@/utils/apiClient";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import styles from "./sign-approval.module.css";
 
 interface SignedDocument {
@@ -24,10 +26,45 @@ interface SignedDocument {
 }
 
 const SignApprovalPage = () => {
-  const { userName } = useUserContext();
+  const { userId, userName } = useUserContext();
   const [modalStates, setModalStates] = useState({ viewModel: false });
-  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [viewDocument, setViewDocument] = useState<any>(null);
+  const [documents, setDocuments] = useState<SignedDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (userId) {
+      loadSignedDocuments();
+    }
+  }, [userId]);
+
+  const loadSignedDocuments = async () => {
+    setLoading(true);
+    try {
+      const response = await getWithAuth("signed-documents");
+      // Mapping logic in case backend structure varies slightly
+      if (Array.isArray(response)) {
+        const mappedDocs = response.map((doc: any) => ({
+          id: doc.id,
+          name: doc.name || doc.document_name,
+          category: doc.category || { category_name: doc.category_name || "Uncategorized" },
+          signed_date: doc.signed_date || doc.updated_at || new Date().toISOString(),
+          status: doc.status || "Signed",
+        }));
+
+        console.log("mappedDocs", mappedDocs);
+        setDocuments(mappedDocs);
+      } else {
+        console.warn("API response is not an array:", response);
+        setDocuments([]);
+      }
+    } catch (error) {
+      console.error("Failed to load signed documents:", error);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCloseModal = (modalName: string) => {
     setModalStates(prev => ({ ...prev, [modalName]: false }));
@@ -35,42 +72,25 @@ const SignApprovalPage = () => {
 
   const currentDateTime = new Date().toLocaleString();
 
-  const handleViewOpen = (doc: SignedDocument) => {
-    setSelectedDocumentId(doc.id);
-    setViewDocument({
-      name: doc.name,
-      type: doc.name.split('.').pop()?.toLowerCase() || "pdf",
-      url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      enable_external_file_view: 0,
-    });
-    setModalStates({ viewModel: true });
-  };
-  const [documents] = useState<SignedDocument[]>([
-    {
-      id: 301,
-      name: "Q3_Financial_Report.pdf",
-      category: { category_name: "Finance" },
-      signed_date: new Date().toISOString(),
-      // signed_by: "Alice Smith",
-      status: "Signed",
-    },
-    {
-      id: 302,
-      name: "Vendor_Contract_ABC.pdf",
-      category: { category_name: "Legal" },
-      signed_date: new Date(Date.now() - 86400000).toISOString(),
-      // signed_by: "Bob Johnson",
-      status: "Signed",
-    },
-    {
-      id: 303,
-      name: "Employee_Handbook_2026.pdf",
-      category: { category_name: "HR" },
-      signed_date: new Date(Date.now() - 172800000).toISOString(),
-      // signed_by: "Charlie Brown",
-      status: "Signed",
+  const handleViewOpen = async (doc: SignedDocument) => {
+    try {
+      const response = await getWithAuth(`view-document/${doc.id}/${userId}`);
+      if (response && response.data) {
+        setViewDocument(response.data);
+        setModalStates({ viewModel: true });
+      } else {
+        console.error("Failed to load document details");
+      }
+    } catch (error) {
+      console.error("Error loading document for view:", error);
     }
-  ]);
+  };
+
+  if (loading && documents.length === 0) return (
+    <DashboardLayout>
+      <LoadingSpinner />
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>
@@ -82,21 +102,21 @@ const SignApprovalPage = () => {
         </div>
 
         <div className={styles.card}>
-          {documents.length > 0 ? (
-            <div className={styles.tableWrapper}>
-              <Table hover responsive>
-                <thead>
-                  <tr>
-                    <th>Document Name</th>
-                    <th>Category</th>
-                    <th>Signed Date</th>
-                    {/* <th>Signed By</th> */}
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => (
+          <div className={styles.tableWrapper}>
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Document Name</th>
+                  <th>Category</th>
+                  <th>Signed Date</th>
+                  {/* <th>Signed By</th> */}
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.length > 0 ? (
+                  documents.map((doc) => (
                     <tr key={doc.id}>
                       <td>
                         <div className="d-flex align-items-center">
@@ -121,18 +141,22 @@ const SignApprovalPage = () => {
                         </Button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          ) : (
-            <div className={styles.noDataContainer}>
-              <div className={styles.noDataIcon}>
-                <FaSignature />
-              </div>
-              <p className={styles.noDataText}>No signed documents found.</p>
-            </div>
-          )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-5">
+                      <div className={styles.noDataContainer} style={{ border: 'none', padding: 0 }}>
+                        <div className={styles.noDataIcon}>
+                          <FaSignature />
+                        </div>
+                        <p className={styles.noDataText}>No signed documents found.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
         </div>
       </div>
 
@@ -143,7 +167,6 @@ const SignApprovalPage = () => {
         fullscreen
         onHide={() => {
           handleCloseModal("viewModel");
-          setSelectedDocumentId(null);
         }}
       >
         <Modal.Header>
@@ -222,7 +245,6 @@ const SignApprovalPage = () => {
             <button
               onClick={() => {
                 handleCloseModal("viewModel");
-                setSelectedDocumentId(null);
                 // setMetaTags([])
               }}
               className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"

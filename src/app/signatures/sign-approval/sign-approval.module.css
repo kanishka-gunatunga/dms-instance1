@@ -167,3 +167,23 @@
   background: #FFF4E8 !important;
   color: #c24a0a !important;
 }
+
+.noDataContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.noDataIcon {
+  font-size: 3rem;
+  color: #D1D5DB;
+  margin-bottom: 1rem;
+}
+
+.noDataText {
+  color: #6B7280;
+  font-size: 1rem;
+}

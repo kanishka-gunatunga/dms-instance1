@@ -3,7 +3,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
 import { Table, Button } from "react-bootstrap";
@@ -38,65 +38,53 @@ const SignRequestsPage = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const loadUserSignature = useCallback(async () => {
+    try {
+      const response = await getWithAuth(`user-details/${userId}`);
+      if (response && response.user_details) {
+        setUserSignatureUrl(response.user_details.signature || "");
+      }
+    } catch (error) {
+      console.error("Failed to load user signature:", error);
+    }
+  }, [userId]);
+
+  const loadSignRequests = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getWithAuth("pending-signatures");
+      if (Array.isArray(response)) {
+        setDocuments(response);
+      } else {
+        console.warn("Pending signatures response is not an array:", response);
+        setDocuments([]);
+      }
+    } catch (error) {
+      console.error("Failed to load sign requests:", error);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (userId) {
       loadSignRequests();
       loadUserSignature();
     }
-  }, [userId]);
-
-  const loadUserSignature = async () => {
-    try {
-      /*
-      const response = await getWithAuth(`edit-user/${userId}`);
-      if (response && response.user_details) {
-        setUserSignatureUrl(response.user_details.digital_signature || "");
-      }
-      */
-      setUserSignatureUrl("https://via.placeholder.com/200x100?text=John+Doe+Signature");
-    } catch (error) {
-      console.error("Failed to load user signature:", error);
-    }
-  };
-
-  const loadSignRequests = async () => {
-    setLoading(true);
-    try {
-      /*
-      await fetchAssignedDocumentsByUserData(Number(userId), (data: any) => {
-        setDocuments(data || []);
-      });
-      */
-      const dummyRequests: Document[] = [
-        { id: 201, name: "Employment_Agreement_2026.pdf", type: "pdf", created_date: new Date().toISOString(), category: { category_name: "HR" } },
-        { id: 202, name: "NDA_Project_X.pdf", type: "pdf", created_date: new Date().toISOString(), category: { category_name: "Legal" } },
-      ];
-      setDocuments(dummyRequests);
-    } catch (error) {
-      console.error("Failed to load sign requests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [userId, loadSignRequests, loadUserSignature]);
 
   const openSignModal = async (doc: Document) => {
     try {
-      /*
       const response = await getWithAuth(`view-document/${doc.id}/${userId}`);
       if (response && response.data) {
+
+        console.log("response.data", response.data);
         setSelectedDoc(response.data);
         setShowSignModal(true);
       } else {
         throw new Error("Failed to load document details");
       }
-      */
-      setSelectedDoc({
-        id: doc.id,
-        name: doc.name,
-        type: doc.type,
-        url: doc.name.includes("pdf") ? "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" : "https://via.placeholder.com/800x1100?text=Document+Preview"
-      });
-      setShowSignModal(true);
     } catch (error) {
       console.error("Error loading document for signing:", error);
       setToastType("error");
@@ -108,17 +96,16 @@ const SignRequestsPage = () => {
   const handleSaveSignedDocument = async (signedFile: File) => {
     setIsProcessing(true);
     try {
-      /*
       const formData = new FormData();
       formData.append("document", signedFile);
       formData.append("user", userId || "");
-      
+
       const response = await postWithAuth(
         `document-upload-new-version/${selectedDoc?.id}`,
         formData
       );
 
-      if (response.status === "success") {
+      if (response.status === "success" || response.message === "success") {
         setShowSignModal(false);
         setToastType("success");
         setToastMessage("Document signed and updated successfully!");
@@ -126,19 +113,9 @@ const SignRequestsPage = () => {
         loadSignRequests(); // Refresh the list
       } else {
         setToastType("error");
-        setToastMessage("Failed to save the signed document!");
+        setToastMessage(response.message || "Failed to save the signed document!");
         setShowToast(true);
       }
-      */
-
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      setShowSignModal(false);
-      setToastType("success");
-      setToastMessage("Document signed and updated successfully (Demo Mode)!");
-      setShowToast(true);
-
-      setDocuments(prev => prev.filter(d => d.id !== selectedDoc?.id));
     } catch (error) {
       console.error("Error saving signed document:", error);
       setToastType("error");
@@ -161,20 +138,20 @@ const SignRequestsPage = () => {
         </div>
 
         <div className={styles.card}>
-          {documents.length > 0 ? (
-            <div className={styles.tableWrapper}>
-              <Table hover responsive>
-                <thead>
-                  <tr>
-                    <th>Document Name</th>
-                    <th>Category</th>
-                    <th>Received Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => (
+          <div className={styles.tableWrapper}>
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Document Name</th>
+                  <th>Category</th>
+                  <th>Received Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.length > 0 ? (
+                  documents.map((doc) => (
                     <tr key={doc.id}>
                       <td>
                         <div className="d-flex align-items-center">
@@ -193,18 +170,22 @@ const SignRequestsPage = () => {
                         </Button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          ) : (
-            <div className={styles.noDataContainer}>
-              <div className={styles.noDataIcon}>
-                <FaSignature />
-              </div>
-              <p className={styles.noDataText}>No pending signature requests found.</p>
-            </div>
-          )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-5">
+                      <div className={styles.noDataContainer}>
+                        <div className={styles.noDataIcon}>
+                          <FaSignature />
+                        </div>
+                        <p className={styles.noDataText}>No pending signature requests found.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
         </div>
       </div>
 
@@ -217,6 +198,15 @@ const SignRequestsPage = () => {
           signatureUrl={userSignatureUrl}
           onSave={handleSaveSignedDocument}
         />
+      )}
+
+      {isProcessing && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)', zIndex: 9999 }}>
+          <div className="text-center">
+            <LoadingSpinner />
+            <p className="mt-2 fw-bold" style={{ color: '#ea580c' }}>Processing signed document...</p>
+          </div>
+        </div>
       )}
 
       <ToastMessage
