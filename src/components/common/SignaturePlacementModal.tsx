@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 import { PDFDocument } from "pdf-lib";
-import { IoClose, IoSaveOutline, IoShieldCheckmarkOutline } from "react-icons/io5";
+import { IoClose, IoShieldCheckmarkOutline } from "react-icons/io5";
 import { generateKeyPair, signData, arrayBufferToBase64, exportKey, importKey } from "@/utils/cryptography";
 
 interface SignaturePlacementModalProps {
@@ -197,7 +197,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     }
     
     const finalPdfBytes = await pdfDoc.save();
-    const blob = new Blob([finalPdfBytes as any], { type: "application/pdf" });
+    const blob = new Blob([finalPdfBytes as unknown as BlobPart], { type: "application/pdf" });
     const file = new File([blob], "signed_document.pdf", { type: "application/pdf" });
     onSave(file);
   };

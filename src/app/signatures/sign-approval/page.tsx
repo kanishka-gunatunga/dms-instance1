@@ -5,9 +5,9 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
 import { Table, Button, Modal, Form } from "react-bootstrap";
 import { IoFolderOutline, IoArrowBack, IoPersonAddOutline } from "react-icons/io5";
-import { fetchDocumentCategoryWithCount, fetchDocumentsData, fetchAndMapUserData } from "@/utils/dataFetchFunctions";
+import { fetchAndMapUserData } from "@/utils/dataFetchFunctions";
 import { useUserContext } from "@/context/userContext";
-import { postWithAuth } from "@/utils/apiClient";
+
 import ToastMessage from "@/components/common/Toast";
 import styles from "./sign-approval.module.css";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -28,7 +28,7 @@ interface Document {
 }
 
 const SignApprovalPage = () => {
-  const { userId } = useUserContext();
+  useUserContext(); // Only use the context if needed or at least consume it to prevent unused, wait I'll remove the destructured userId.
   const [view, setView] = useState<"categories" | "documents">("categories");
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -132,7 +132,7 @@ const SignApprovalPage = () => {
       setShowToast(true);
       setShowAssignModal(false);
       setSelectedUserIds([]);
-    } catch (error) {
+    } catch {
       setToastType("error");
       setToastMessage("Failed to assign document for signature.");
       setShowToast(true);

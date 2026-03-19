@@ -5,11 +5,11 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
 import { Table, Button } from "react-bootstrap";
 import { FaSignature, FaRegFileAlt } from "react-icons/fa";
-import { fetchAssignedDocumentsByUserData, fetchDocumentsData } from "@/utils/dataFetchFunctions";
+
 import { useUserContext } from "@/context/userContext";
 import SignaturePlacementModal from "@/components/common/SignaturePlacementModal";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { getWithAuth, postWithAuth } from "@/utils/apiClient";
+
 import ToastMessage from "@/components/common/Toast";
 import styles from "./sign-requests.module.css";
 
@@ -19,6 +19,7 @@ interface Document {
   type: string;
   created_date: string;
   category?: { category_name: string };
+  url?: string;
 }
 
 const SignRequestsPage = () => {
@@ -28,14 +29,14 @@ const SignRequestsPage = () => {
   
   // Signature Modal states
   const [showSignModal, setShowSignModal] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [userSignatureUrl, setUserSignatureUrl] = useState<string>("");
 
   // Toast states
   const [showToast, setShowToast] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [toastMessage, setToastMessage] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+
 
   useEffect(() => {
     if (userId) {
@@ -96,6 +97,7 @@ const SignRequestsPage = () => {
         id: doc.id,
         name: doc.name,
         type: doc.type,
+        created_date: doc.created_date,
         url: doc.name.includes("pdf") ? "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" : "https://via.placeholder.com/800x1100?text=Document+Preview"
       });
       setShowSignModal(true);
@@ -107,8 +109,7 @@ const SignRequestsPage = () => {
     }
   };
 
-  const handleSaveSignedDocument = async (signedFile: File) => {
-    setIsProcessing(true); // Assuming you'd want to show a spinner in the modal
+  const handleSaveSignedDocument = async () => {
     try {
       // Mocking successful upload for frontend demo
       /*
@@ -150,7 +151,7 @@ const SignRequestsPage = () => {
       setToastMessage("An error occurred while saving the signed document!");
       setShowToast(true);
     } finally {
-      setIsProcessing(false);
+      // Done processing
     }
   };
 
@@ -217,7 +218,7 @@ const SignRequestsPage = () => {
         <SignaturePlacementModal
           show={showSignModal}
           onHide={() => setShowSignModal(false)}
-          documentUrl={selectedDoc.url}
+          documentUrl={selectedDoc.url || ""}
           documentType={selectedDoc.type}
           signatureUrl={userSignatureUrl}
           onSave={handleSaveSignedDocument}
