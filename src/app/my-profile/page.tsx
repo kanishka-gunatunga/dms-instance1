@@ -6,7 +6,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import useAuth from "@/hooks/useAuth";
 import React, { useEffect, useState, useRef } from "react";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { getWithAuth, postWithAuth } from "@/utils/apiClient";
+import { getWithAuth, postWithAuth, getBlobWithAuth, API_BASE_URL } from "@/utils/apiClient";
 import { useRouter } from "next/navigation";
 import { IoSaveOutline, IoImageOutline, IoCreateOutline } from "react-icons/io5";
 import { MdOutlineCancel } from "react-icons/md";
@@ -49,6 +49,7 @@ export default function AllDocTable({ }: Props) {
     const [toastType, setToastType] = useState<"success" | "error">("success");
     const [toastMessage, setToastMessage] = useState("");
     const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+    const [activeTab, setActiveTab] = useState<string>("general");
     const [password, setPassword] = useState("");
     const [currentPassword, setCurrentPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,7 +68,10 @@ export default function AllDocTable({ }: Props) {
         if (file) {
             setSignatureFile(file);
             const signatureURL = URL.createObjectURL(file);
-            setSignature(signatureURL);
+            setSignature(prev => {
+                if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+                return signatureURL;
+            });
         }
     };
 
@@ -95,21 +99,56 @@ export default function AllDocTable({ }: Props) {
     };
 
 
+    const fetchSignature = async () => {
+        try {
+            // Try fetching as JSON explicitly via apiClient
+            let signatureSource = "";
+            try {
+                const data = await getWithAuth("get-signature");
+                if (data && (data.signature_url || data.signature || (data.data && data.data.signature))) {
+                    signatureSource = data.signature_url || data.signature || data.data.signature;
+                } else if (data && typeof data === 'string' && data.startsWith('http')) {
+                    signatureSource = data;
+                }
+            } catch (jsonError) {
+            }
+
+            if (signatureSource) {
+                if (!signatureSource.startsWith("http") && !signatureSource.startsWith("data:") && !signatureSource.startsWith("blob:")) {
+                    const apiOrigin = new URL(API_BASE_URL).origin;
+                    signatureSource = `${apiOrigin}${signatureSource.startsWith("/") ? "" : "/"}${signatureSource}`;
+                }
+
+                setSignature(prev => {
+                    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+                    return signatureSource;
+                });
+                return;
+            }
+
+            // Fallback to blob
+            const blob = await getBlobWithAuth("get-signature");
+            if (blob.size > 0 && blob.type.startsWith("image/")) {
+                const url = URL.createObjectURL(blob);
+                setSignature(prev => {
+                    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+                    return url;
+                });
+            }
+        } catch (error) {
+            console.error("Failed to fetch signature:", error);
+        }
+    };
+
     useEffect(() => {
         const fetchUserDetails = async () => {
             try {
                 const response = await getWithAuth(`user-details/${userId}`);
-                // console.log("user details : ", response);
                 setFirstName(response.user_details.first_name || "");
-                // console.log("user details f : ", response.user_details.first_name);
                 setLastName(response.user_details.last_name || "");
-                // console.log("user details l : ", response.user_details.last_name);
                 setMobileNumber(response.user_details.mobile_no?.toString() || "");
-                setMyEmail(response.email || "");
-                setSignature(response.user_details.signature || "");
-                // console.log("user roles : ", response.role);
+                setMyEmail(response.user_details?.email || response.email || "");
                 const roleIds = parseRoles(response.role);
-
                 setSelectedRoleIds(roleIds);
             } catch (error) {
                 console.error("Failed to fetch profile data:", error);
@@ -118,7 +157,17 @@ export default function AllDocTable({ }: Props) {
 
         if (userId) {
             fetchUserDetails();
+            fetchSignature();
         }
+
+        return () => {
+            setSignature(prev => {
+                if (prev.startsWith("blob:")) {
+                    URL.revokeObjectURL(prev);
+                }
+                return prev;
+            });
+        };
     }, [userId]);
 
     const parseRoles = (roleData: any): string[] => {
@@ -147,55 +196,75 @@ export default function AllDocTable({ }: Props) {
         return newErrors;
     };
     const handleSubmit = async () => {
-        const fieldErrors = validateFields();
-        if (Object.keys(fieldErrors).length > 0) {
-            setErrors(fieldErrors);
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("first_name", firstName);
-        formData.append("last_name", lastName);
-        formData.append("mobile_no", mobileNumber);
-        formData.append("email", myEmail);
-        formData.append("role", JSON.stringify(selectedRoleIds));
-
-        if (signatureFile) {
-            formData.append("signature", signatureFile);
-        }
-
-        // for (const [key, value] of formData.entries()) {
-        //     console.log(`Document share: ${key}: ${value}`);
-        // }
-        try {
-            const response = await postWithAuth(`user-details/${userId}`, formData);
-            // console.log("Form submitted successfully:", response);
-            if (response.status === "fail") {
-                setToastType("error");
-                setToastMessage("Failed to update user!");
-                setShowToast(true);
-                setTimeout(() => {
-                    setShowToast(false);
-                }, 5000);
-            } else {
-                setToastType("success");
-                setToastMessage("User Updated successfully!");
-                setShowToast(true);
-
-                // Update signature from response if available to avoid stale blob URLs
-                if (response.data && response.data.signature) {
-                    setSignature(response.data.signature);
-                }
-                setSignatureFile(null); // Clear file state after upload
-
-                setTimeout(() => {
-                    setShowToast(false);
-                }, 5000);
+        if (activeTab === "general") {
+            const fieldErrors = validateFields();
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(fieldErrors);
+                return;
             }
-            // setSuccess("Form submitted successfully");
-        } catch (error) {
-            console.error("Error submitting form:", error);
+
+            try {
+                const formData = new FormData();
+                formData.append("first_name", firstName);
+                formData.append("last_name", lastName);
+                formData.append("mobile_no", mobileNumber);
+                formData.append("email", myEmail);
+                formData.append("role", selectedRoleIds.join(","));
+
+                const response = await postWithAuth(`user-details/${userId}`, formData);
+
+                if (response.status === "fail") {
+                    setToastType("error");
+                    setToastMessage(response.message || "Failed to update profile details!");
+                    setShowToast(true);
+                } else {
+                    setToastType("success");
+                    setToastMessage("Profile updated successfully!");
+                    setShowToast(true);
+                }
+            } catch (error) {
+                console.error("Error submitting profile form:", error);
+                setToastType("error");
+                setToastMessage("An error occurred while saving profile changes.");
+                setShowToast(true);
+            }
+        } else if (activeTab === "signature") {
+            if (!signatureFile) {
+                setToastType("error");
+                setToastMessage("Please upload or draw a signature first.");
+                setShowToast(true);
+                return;
+            }
+
+            try {
+                const sigFormData = new FormData();
+                sigFormData.append("signature", signatureFile);
+
+                const sigResponse = await postWithAuth("update-signature", sigFormData);
+
+                if (sigResponse.status === "success" || sigResponse.message === "success") {
+                    setToastType("success");
+                    setToastMessage("Signature updated successfully!");
+                    setShowToast(true);
+                    setSignatureFile(null);
+
+                    await fetchSignature();
+                } else {
+                    setToastType("error");
+                    setToastMessage(sigResponse.message || "Failed to update signature!");
+                    setShowToast(true);
+                }
+            } catch (error) {
+                console.error("Error submitting signature form:", error);
+                setToastType("error");
+                setToastMessage("An error occurred while saving the signature.");
+                setShowToast(true);
+            }
         }
+
+        setTimeout(() => {
+            setShowToast(false);
+        }, 5000);
     };
 
 
@@ -283,7 +352,7 @@ export default function AllDocTable({ }: Props) {
 
                     <div className={styles.card}>
                         <div className={`${styles.scrollContent} custom-scroll`}>
-                            <Tabs defaultActiveKey="general" id="profile-tabs" className="mb-3">
+                            <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k || "general")} id="profile-tabs" className="mb-3">
                                 <Tab eventKey="general" title="General">
                                     <div className="p-0 row row-cols-1 row-cols-md-2 overflow-hidden w-100 mt-2">
                                         <div className="d-flex flex-column pe-md-3">
@@ -359,10 +428,23 @@ export default function AllDocTable({ }: Props) {
                                         {signatureMode === "upload" ? (
                                             <div className="col-12 col-md-6 col-lg-4">
                                                 <div className={styles.imageCard}>
-                                                    {signature && !signature.startsWith("data:") ? (
-                                                        <img src={signature} alt="Digital Signature" className="card-img-top w-100" style={{ maxHeight: '120px', objectFit: 'contain', borderRadius: '0.5rem' }} />
-                                                    ) : signature && signature.startsWith("data:") ? (
-                                                        <img src={signature} alt="Drawn Signature Preview" className="card-img-top w-100" style={{ maxHeight: '120px', objectFit: 'contain', borderRadius: '0.5rem' }} />
+                                                    {signature ? (
+                                                        <img
+                                                            src={signature}
+                                                            alt="Digital Signature"
+                                                            className="card-img-top w-100"
+                                                            style={{
+                                                                maxHeight: '120px',
+                                                                objectFit: 'contain',
+                                                                borderRadius: '0.5rem',
+                                                                backgroundColor: '#f9fafb'
+                                                            }}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                // Use a fallback or transparent image if loading fails
+                                                                target.style.display = 'none';
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <div className="d-flex align-items-center justify-content-center bg-light rounded" style={{ height: "120px" }}>
                                                             <span className="text-muted">No signature uploaded</span>

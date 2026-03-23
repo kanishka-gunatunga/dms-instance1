@@ -9,19 +9,22 @@ import { Modal, Button, Form } from "react-bootstrap";
 import { PDFDocument } from "pdf-lib";
 import { IoClose, IoSaveOutline, IoShieldCheckmarkOutline } from "react-icons/io5";
 import { generateKeyPair, signData, arrayBufferToBase64, exportKey, importKey } from "@/utils/cryptography";
+import { getBlobWithAuth, getWithAuth, API_BASE_URL } from "@/utils/apiClient";
 
 interface SignaturePlacementModalProps {
   show: boolean;
   onHide: () => void;
+  name: string;
   documentUrl: string;
   documentType: string;
   signatureUrl: string;
-  onSave: (signedFile: File) => void;
+  onSave: (signedFile: File, signatureData: any[]) => void;
 }
 
 const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
   show,
   onHide,
+  name,
   documentUrl,
   documentType,
   signatureUrl,
@@ -33,8 +36,8 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
   const [pdfMetadata, setPdfMetadata] = useState<{ pageCount: number; width: number; height: number } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [localSignatureUrl, setLocalSignatureUrl] = useState<string | null>(null);
-  const signatureBufferRef = useRef<ArrayBuffer | null>(null);
   const [userKeys, setUserKeys] = useState<CryptoKeyPair | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
   useEffect(() => {
     if (show) {
@@ -52,6 +55,22 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       }
     };
   }, [show, documentUrl, signatureUrl]);
+
+  useEffect(() => {
+    let observer: ResizeObserver;
+    if (containerRef.current && show && !previewError && pdfMetadata) {
+      setContainerWidth(containerRef.current.clientWidth);
+      observer = new ResizeObserver((entries) => {
+        if (entries[0]) {
+          setContainerWidth(entries[0].contentRect.width);
+        }
+      });
+      observer.observe(containerRef.current);
+    }
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [show, pdfMetadata, previewError]);
 
   const initUserKeys = async () => {
     try {
@@ -74,15 +93,37 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
   };
 
   const prefetchSignature = async () => {
-    if (!signatureUrl) return;
     try {
-      const resp = await fetch(signatureUrl);
-      if (!resp.ok) throw new Error("Failed to fetch signature");
-      const buffer = await resp.arrayBuffer();
-      signatureBufferRef.current = buffer;
-      const blob = new Blob([buffer], { type: "image/png" });
-      const localUrl = URL.createObjectURL(blob);
-      setLocalSignatureUrl(localUrl);
+      let signatureSource = "";
+
+      // Try fetching as JSON explicitly via apiClient
+      try {
+        const data = await getWithAuth("get-signature");
+        if (data && (data.signature_url || data.signature || (data.data && data.data.signature))) {
+          signatureSource = data.signature_url || data.signature || data.data.signature;
+        } else if (data && typeof data === 'string' && data.startsWith('http')) {
+          signatureSource = data;
+        }
+      } catch (jsonError) {
+        // Ignore JSON parse errors and try fallback
+      }
+
+      if (signatureSource) {
+        // Prepend base URL if relative path
+        if (!signatureSource.startsWith("http") && !signatureSource.startsWith("data:") && !signatureSource.startsWith("blob:")) {
+          const apiOrigin = new URL(API_BASE_URL).origin;
+          signatureSource = `${apiOrigin}${signatureSource.startsWith("/") ? "" : "/"}${signatureSource}`;
+        }
+        setLocalSignatureUrl(signatureSource);
+        return;
+      }
+
+      // Fallback to blob
+      const blob = await getBlobWithAuth("get-signature");
+      if (blob.size > 0 && blob.type.startsWith("image/")) {
+        const url = URL.createObjectURL(blob);
+        setLocalSignatureUrl(url);
+      }
     } catch (error) {
       console.error("Signature prefetch failed:", error);
     }
@@ -118,12 +159,23 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
 
     if (documentType.toLowerCase() === "pdf" && pdfMetadata) {
       const containerWidth = rect.width;
-      const scaledPageHeight = (pdfMetadata.height / pdfMetadata.width) * containerWidth;
-      const pageIndex = Math.floor(y / scaledPageHeight);
+      const totalContainerHeight = rect.height;
 
-      if (pageIndex < pdfMetadata.pageCount) {
-        setPlacements(prev => [...prev, { x, y, pageIndex }]);
+      // Use actual height divided by page count for perfect visual alignment 
+      const scaledPageHeight = totalContainerHeight / pdfMetadata.pageCount;
+
+      let pageIndex = Math.floor(y / scaledPageHeight);
+
+      console.log(`Click at y: ${y}, scaledPageHeight: ${scaledPageHeight}, totalHeight: ${totalContainerHeight}, calculated pageIndex: ${pageIndex}`);
+      console.log(`PDF Metadata: width=${pdfMetadata.width}, height=${pdfMetadata.height}`);
+
+      if (pageIndex >= pdfMetadata.pageCount) {
+        pageIndex = pdfMetadata.pageCount - 1;
       }
+
+      if (pageIndex < 0) pageIndex = 0;
+
+      setPlacements(prev => [...prev, { x, y, pageIndex }]);
     } else {
       setPlacements(prev => [...prev, { x, y, pageIndex: 0 }]);
     }
@@ -139,120 +191,63 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     setIsProcessing(true);
     try {
       const type = documentType.toLowerCase();
+      const signatureData: any[] = [];
+
+      if (!containerRef.current) throw new Error("Container reference is missing");
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+
       if (type === "pdf") {
-        await signPdf();
-      } else if (["png", "jpg", "jpeg"].includes(type)) {
-        await signImage();
+        if (!pdfMetadata) throw new Error("PDF metadata is missing");
+
+        const containerWidth = containerRect.width;
+        const totalContainerHeight = containerRect.height;
+        const scaledPageHeight = totalContainerHeight / pdfMetadata.pageCount;
+
+        for (const placement of placements) {
+          const pdfX = (placement.x / containerWidth) * pdfMetadata.width;
+          const yOnPage = placement.y % scaledPageHeight;
+
+          // Fpdi expects TOP-LEFT coordinates, where Y is distance from the top of the page.
+          // The API then subtracts 37.5 from Y to place the top-left corner of the signature.
+          // 'yOnPage' is the distance from the top of the visual page overlay to the click.
+          const pdfY = (yOnPage / scaledPageHeight) * pdfMetadata.height;
+
+          signatureData.push({
+            page_number: placement.pageIndex + 1,
+            x_position: Math.round(pdfX),
+            y_position: Math.round(pdfY)
+          });
+        }
+      } else {
+        const imgElement = containerRef.current.querySelector('img');
+        const naturalWidth = imgElement?.naturalWidth || containerWidth;
+        const naturalHeight = imgElement?.naturalHeight || containerRect.height;
+
+        for (const placement of placements) {
+          const drawX = (placement.x / containerRect.width) * naturalWidth;
+          const drawY = (placement.y / containerRect.height) * naturalHeight;
+
+          signatureData.push({
+            page_number: 1,
+            x_position: Math.round(drawX),
+            y_position: Math.round(drawY)
+          });
+        }
       }
+
+      console.log("Calculated signatureData for placement:", signatureData);
+      // We pass null for the file since the server handles signing
+      onSave(null as any, signatureData);
     } catch (error) {
-      console.error("Signing failed:", error);
-      alert("Signing failed. Please ensure the document and signature are accessible. Technical error: " + (error as Error).message);
+      console.error("Coordinate calculation failed:", error);
+      alert("Failed to prepare signing data. Technical error: " + (error as Error).message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const signPdf = async () => {
-    const response = await fetch(documentUrl);
-    const existingPdfBytes = await response.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    const pages = pdfDoc.getPages();
-
-    let signatureBytes = signatureBufferRef.current;
-    if (!signatureBytes) {
-      const sigResp = await fetch(signatureUrl);
-      if (!sigResp.ok) throw new Error("Failed to fetch signature image");
-      signatureBytes = await sigResp.arrayBuffer();
-    }
-    const signatureImage = await pdfDoc.embedPng(signatureBytes);
-
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-
-    for (const placement of placements) {
-      const targetPage = pages[placement.pageIndex];
-      const { width, height } = targetPage.getSize();
-
-      const pdfX = (placement.x / containerWidth) * width;
-      const scaledPageHeight = (pdfMetadata!.height / pdfMetadata!.width) * containerWidth;
-      const yOnPage = placement.y % scaledPageHeight;
-      const pdfY = height - (yOnPage / scaledPageHeight) * height - 25;
-
-      targetPage.drawImage(signatureImage, {
-        x: pdfX - 50,
-        y: pdfY,
-        width: 100,
-        height: 50,
-      });
-    }
-
-    const visualSignedPdfBytes = await pdfDoc.save();
-    if (userKeys) {
-      const cryptoSig = await signData(visualSignedPdfBytes.buffer as ArrayBuffer, userKeys.privateKey);
-      const base64Sig = arrayBufferToBase64(cryptoSig);
-
-      pdfDoc.setKeywords(["X-DMS-Signature:" + base64Sig, "X-DMS-Signed:true"]);
-      pdfDoc.setProducer("DMS Secure Digital Signer");
-      pdfDoc.setAuthor("Authenticated DMS User");
-      pdfDoc.setModificationDate(new Date());
-    }
-
-    const finalPdfBytes = await pdfDoc.save();
-    const blob = new Blob([finalPdfBytes as any], { type: "application/pdf" });
-    const file = new File([blob], "signed_document.pdf", { type: "application/pdf" });
-    onSave(file);
-  };
-
-  const signImage = async () => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const mainImg = new Image();
-    mainImg.crossOrigin = "anonymous";
-    mainImg.src = documentUrl;
-
-    await new Promise((resolve, reject) => {
-      mainImg.onload = resolve;
-      mainImg.onerror = () => reject(new Error("Failed to load main image (CORS likely)"));
-    });
-
-    canvas.width = mainImg.width;
-    canvas.height = mainImg.height;
-    ctx.drawImage(mainImg, 0, 0);
-
-    const sigImg = new Image();
-    sigImg.crossOrigin = "anonymous";
-    sigImg.src = localSignatureUrl || signatureUrl;
-
-    await new Promise((resolve, reject) => {
-      sigImg.onload = resolve;
-      sigImg.onerror = () => reject(new Error("Failed to load signature image (CORS likely)"));
-    });
-
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-
-    for (const placement of placements) {
-      const drawX = (placement.x / containerRect.width) * mainImg.width;
-      const drawY = (placement.y / containerRect.height) * mainImg.height;
-      ctx.drawImage(sigImg, drawX - 75, drawY - 37.5, 150, 75);
-    }
-
-    if (userKeys) {
-      ctx.font = "12px Arial";
-      ctx.fillStyle = "rgba(0,0,0,0.3)";
-      ctx.fillText("Cryptographically Secured by DMS", 10, canvas.height - 10);
-    }
-
-    canvas.toBlob(async (blob) => {
-      if (blob) {
-        const file = new File([blob], "signed_document.png", { type: "image/png" });
-        onSave(file);
-      }
-    }, "image/png");
-  };
+  const TRANSPARENT_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
   const renderContent = () => {
     if (previewError) {
@@ -287,11 +282,13 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
               position: "relative",
               width: "100%",
               cursor: "crosshair",
-              height: pdfMetadata ? `calc(${pdfMetadata.pageCount} * (100% * ${aspectRatio}))` : "2000px"
+              height: (pdfMetadata && containerWidth > 0) 
+                ? `${(containerWidth * aspectRatio * pdfMetadata.pageCount) + (pdfMetadata.pageCount * 15)}px` 
+                : "2000px"
             }}
           >
             <iframe
-              src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+              src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
               style={{
                 width: "100%",
                 height: "100%",
@@ -318,8 +315,8 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
                   style={{ width: "100px", height: "auto", border: "1px dashed #ea580c", backgroundColor: "rgba(255,255,255,0.5)" }}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    if (!target.src.includes('placeholder')) {
-                      target.src = "https://via.placeholder.com/100x50?text=Signature";
+                    if (!target.src.includes('data:')) {
+                      target.src = TRANSPARENT_PNG;
                     }
                   }}
                 />
@@ -364,8 +361,8 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
               style={{ width: "100px", height: "auto", border: "1px dashed #ea580c" }}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                if (!target.src.includes('placeholder')) {
-                  target.src = "https://via.placeholder.com/100x50?text=Signature";
+                if (!target.src.includes('data:')) {
+                  target.src = TRANSPARENT_PNG;
                 }
               }}
             />
@@ -381,7 +378,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
         <div className="d-flex w-100 justify-content-end align-items-center">
           <div className="col-11 d-flex flex-row">
             <p className="mb-0" style={{ fontSize: "16px", color: "#333", fontWeight: 500 }}>
-              Place Signature : {documentUrl.split('/').pop()}
+              Place Signature : {name}
             </p>
           </div>
           <div className="col-1 d-flex justify-content-end">

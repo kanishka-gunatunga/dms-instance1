@@ -94,27 +94,35 @@ const SignRequestsPage = () => {
     }
   };
 
-  const handleSaveSignedDocument = async (signedFile: File) => {
+  const handleSaveSignedDocument = async (signedFile: File, signatureData: any[]) => {
     setIsProcessing(true);
     try {
       const formData = new FormData();
-      formData.append("document", signedFile);
       formData.append("user", userId || "");
+      formData.append("signatures", JSON.stringify(signatureData));
+
+      console.log("Signing Document ID:", selectedDoc?.id);
+      console.log("FormData - User ID:", userId);
+      console.log("FormData - Signatures:", JSON.stringify(signatureData));
 
       const response = await postWithAuth(
-        `document-upload-new-version/${selectedDoc?.id}`,
+        `sign-document/${selectedDoc?.id}`,
         formData
       );
 
-      if (response.status === "success" || response.message === "success") {
+      console.log("Sign API Response:", response);
+
+      if (response && (response.status === "success" || response.message === "success" || response.status === 200)) {
         setShowSignModal(false);
         setToastType("success");
         setToastMessage("Document signed and updated successfully!");
         setShowToast(true);
         loadSignRequests();
       } else {
+        const errorMsg = response?.message || response?.error || "Failed to save the signed document!";
+        console.error("Sign API Failure Details:", response);
         setToastType("error");
-        setToastMessage(response.message || "Failed to save the signed document!");
+        setToastMessage(errorMsg);
         setShowToast(true);
       }
     } catch (error) {
@@ -194,6 +202,7 @@ const SignRequestsPage = () => {
         <SignaturePlacementModal
           show={showSignModal}
           onHide={() => setShowSignModal(false)}
+          name={selectedDoc.name}
           documentUrl={selectedDoc.url}
           documentType={selectedDoc.type}
           signatureUrl={userSignatureUrl}
