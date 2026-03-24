@@ -81,6 +81,13 @@ const SignRequestsPage = () => {
       if (response && response.data) {
 
         console.log("response.data", response.data);
+        
+        try {
+          await postWithAuth(`view-sign-document/${doc.id}`, new FormData());
+        } catch (error) {
+          console.error("Failed to track view time for document:", error);
+        }
+
         setSelectedDoc(response.data);
         setShowSignModal(true);
       } else {
@@ -207,6 +214,12 @@ const SignRequestsPage = () => {
           documentType={selectedDoc.type}
           signatureUrl={userSignatureUrl}
           onSave={handleSaveSignedDocument}
+          onTimeExpired={() => {
+            setShowSignModal(false);
+            setToastType("error");
+            setToastMessage("Time has expired for signing this document.");
+            setShowToast(true);
+          }}
         />
       )}
 
