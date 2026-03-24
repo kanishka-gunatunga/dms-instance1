@@ -75,7 +75,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
     if (show) {
       setPlacements([]);
       setPreviewError(null);
-      setTimerSeconds(300); // 5 minutes initial timer
+      setTimerSeconds(300);
       if (documentType.toLowerCase() === "pdf") {
         loadPdfMetadata();
       }
@@ -240,7 +240,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
   const handleSignatureClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
-  
+
   const removePlacement = (index: number) => {
     setPlacements(prev => prev.filter((_, i) => i !== index));
   };
@@ -297,7 +297,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
       if (sigImg && sigImg.clientHeight) {
         sigHeightOffset = sigImg.clientHeight / 2;
       } else {
-        sigHeightOffset = 18; // Fallback offset roughly equal to half a typical signature height
+        sigHeightOffset = 18;
       }
 
       if (type === "pdf") {
@@ -309,7 +309,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
 
         for (const placement of placements) {
           const pdfX = (placement.x / containerWidth) * pdfMetadata.width;
-          
+
           let yOnPage = (placement.y % scaledPageHeight) + sigHeightOffset;
           if (yOnPage > scaledPageHeight) yOnPage = scaledPageHeight;
 
@@ -330,7 +330,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
 
         for (const placement of placements) {
           const drawX = (placement.x / displayWidth) * naturalWidth;
-          
+
           let adjustedY = placement.y + sigHeightOffset;
           if (adjustedY > displayHeight) adjustedY = displayHeight;
 
@@ -408,8 +408,8 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5 }} />
 
             {placements.map((p, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 onMouseDown={(e) => handleSignatureMouseDown(e, i)}
                 onClick={handleSignatureClick}
                 style={{
@@ -433,7 +433,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
                     }
                   }}
                 />
-                <div 
+                <div
                   onClick={(e) => { e.stopPropagation(); removePlacement(i); }}
                   style={{
                     position: 'absolute', top: -10, right: -10, background: '#dc3545', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', zIndex: 30, boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
@@ -470,8 +470,8 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
           onError={() => setPreviewError("Failed to load image preview.")}
         />
         {placements.map((p, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             onMouseDown={(e) => handleSignatureMouseDown(e, i)}
             onClick={handleSignatureClick}
             style={{
@@ -495,7 +495,7 @@ const SignaturePlacementModal: React.FC<SignaturePlacementModalProps> = ({
                 }
               }}
             />
-            <div 
+            <div
               onClick={(e) => { e.stopPropagation(); removePlacement(i); }}
               style={{
                 position: 'absolute', top: -10, right: -10, background: '#dc3545', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', zIndex: 30, boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
