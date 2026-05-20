@@ -8,7 +8,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Heading from "@/components/common/Heading";
 import { Table, Button } from "react-bootstrap";
 import { FaSignature, FaRegFileAlt } from "react-icons/fa";
-import { fetchAssignedDocumentsByUserData, fetchDocumentsData } from "@/utils/dataFetchFunctions";
 import { useUserContext } from "@/context/userContext";
 import SignaturePlacementModal from "@/components/common/SignaturePlacementModal";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -54,7 +53,6 @@ const SignRequestsPage = () => {
     try {
       const response = await getWithAuth("pending-signatures");
       if (Array.isArray(response)) {
-        console.log("response", response);
         setDocuments(response);
       } else {
         console.warn("Pending signatures response is not an array:", response);
@@ -79,8 +77,12 @@ const SignRequestsPage = () => {
     try {
       const response = await getWithAuth(`view-document/${doc.id}/${userId}`);
       if (response && response.data) {
+        try {
+          await getWithAuth(`view-sign-document/${doc.id}`);
+        } catch (error) {
+          console.error("Failed to track view time for document:", error);
+        }
 
-        console.log("response.data", response.data);
         setSelectedDoc(response.data);
         setShowSignModal(true);
       } else {
@@ -101,16 +103,10 @@ const SignRequestsPage = () => {
       formData.append("user", userId || "");
       formData.append("signatures", JSON.stringify(signatureData));
 
-      console.log("Signing Document ID:", selectedDoc?.id);
-      console.log("FormData - User ID:", userId);
-      console.log("FormData - Signatures:", JSON.stringify(signatureData));
-
       const response = await postWithAuth(
         `sign-document/${selectedDoc?.id}`,
         formData
       );
-
-      console.log("Sign API Response:", response);
 
       if (response && (response.status === "success" || response.message === "success" || response.status === 200)) {
         setShowSignModal(false);
@@ -120,7 +116,6 @@ const SignRequestsPage = () => {
         loadSignRequests();
       } else {
         const errorMsg = response?.message || response?.error || "Failed to save the signed document!";
-        console.error("Sign API Failure Details:", response);
         setToastType("error");
         setToastMessage(errorMsg);
         setShowToast(true);
@@ -207,6 +202,12 @@ const SignRequestsPage = () => {
           documentType={selectedDoc.type}
           signatureUrl={userSignatureUrl}
           onSave={handleSaveSignedDocument}
+          onTimeExpired={() => {
+            setShowSignModal(false);
+            setToastType("error");
+            setToastMessage("Time has expired for signing this document.");
+            setShowToast(true);
+          }}
         />
       )}
 

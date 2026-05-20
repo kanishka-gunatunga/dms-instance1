@@ -40,7 +40,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, width = 400, height
     const pos = getPos(e);
     context?.lineTo(pos.x, pos.y);
     context?.stroke();
-    
+
     // Auto-save on every stroke for real-time preview if needed
     save();
   };
@@ -54,7 +54,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, width = 400, height
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    
+
     let clientX, clientY;
     if ("touches" in e) {
       clientX = e.touches[0].clientX;

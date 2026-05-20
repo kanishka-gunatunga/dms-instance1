@@ -98,10 +98,8 @@ export default function AllDocTable({ }: Props) {
         return new File([u8arr], filename, { type: mime });
     };
 
-
     const fetchSignature = async () => {
         try {
-            // Try fetching as JSON explicitly via apiClient
             let signatureSource = "";
             try {
                 const data = await getWithAuth("get-signature");
@@ -110,7 +108,8 @@ export default function AllDocTable({ }: Props) {
                 } else if (data && typeof data === 'string' && data.startsWith('http')) {
                     signatureSource = data;
                 }
-            } catch (jsonError) {
+            } catch {
+                // fall through to blob fetch
             }
 
             if (signatureSource) {
@@ -126,7 +125,6 @@ export default function AllDocTable({ }: Props) {
                 return;
             }
 
-            // Fallback to blob
             const blob = await getBlobWithAuth("get-signature");
             if (blob.size > 0 && blob.type.startsWith("image/")) {
                 const url = URL.createObjectURL(blob);
@@ -195,6 +193,7 @@ export default function AllDocTable({ }: Props) {
 
         return newErrors;
     };
+
     const handleSubmit = async () => {
         if (activeTab === "general") {
             const fieldErrors = validateFields();
@@ -209,7 +208,7 @@ export default function AllDocTable({ }: Props) {
                 formData.append("last_name", lastName);
                 formData.append("mobile_no", mobileNumber);
                 formData.append("email", myEmail);
-                formData.append("role", selectedRoleIds.join(","));
+                formData.append("role", JSON.stringify(selectedRoleIds));
 
                 const response = await postWithAuth(`user-details/${userId}`, formData);
 
@@ -247,7 +246,6 @@ export default function AllDocTable({ }: Props) {
                     setToastMessage("Signature updated successfully!");
                     setShowToast(true);
                     setSignatureFile(null);
-
                     await fetchSignature();
                 } else {
                     setToastType("error");
@@ -266,7 +264,6 @@ export default function AllDocTable({ }: Props) {
             setShowToast(false);
         }, 5000);
     };
-
 
     const handleShow = () => {
         setShow(true);
@@ -309,7 +306,6 @@ export default function AllDocTable({ }: Props) {
 
             try {
                 const response = await postWithAuth("update-password", formData);
-                // console.log("Form submitted successfully:", response);
                 if (response.status === "fail") {
                     setToastType("error");
                     setToastMessage("Failed to reset password!");
@@ -332,6 +328,7 @@ export default function AllDocTable({ }: Props) {
             }
         }
     };
+
     return (
         <>
             <DashboardLayout>
@@ -441,7 +438,6 @@ export default function AllDocTable({ }: Props) {
                                                             }}
                                                             onError={(e) => {
                                                                 const target = e.target as HTMLImageElement;
-                                                                // Use a fallback or transparent image if loading fails
                                                                 target.style.display = 'none';
                                                             }}
                                                         />

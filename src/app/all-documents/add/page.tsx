@@ -54,6 +54,7 @@ export default function AllDocTable() {
 
   const [metaTags, setMetaTags] = useState<string[]>([]);
   const [currentMeta, setCurrentMeta] = useState<string>("");
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
   const [isTimeLimited, setIsTimeLimited] = useState<boolean>(false);
   const [roles, setRoles] = useState<string[]>([]);
@@ -108,7 +109,31 @@ export default function AllDocTable() {
     fetchCategoryData(setCategoryDropDownData);
     fetchRoleData(setRoleDropDownData);
     fetchAndMapUserData(setUserDropDownData);
-    fetchSectors(setSectorDropDownData)
+    fetchSectors(setSectorDropDownData);
+
+    const fetchTags = async () => {
+      try {
+        const response = await getWithAuth("get-all-meta-tags");
+        if (Array.isArray(response)) {
+          const tags = response.map((t: any) => {
+            if (typeof t === "string") return t;
+            if (t.tag_name) return t.tag_name;
+            if (t.name) return t.name;
+            if (t.meta_tag) return t.meta_tag;
+            if (t.tag) return t.tag;
+            const values = Object.values(t);
+            return values.find(v => typeof v === "string");
+          }).filter(Boolean);
+          setSuggestedTags(tags);
+        } else if (response && Array.isArray(response.data)) {
+          const tags = response.data.map((t: any) => typeof t === "string" ? t : t.tag_name || t.name || t.meta_tag || t.tag).filter(Boolean);
+          setSuggestedTags(tags);
+        }
+      } catch (err) {
+        console.error("Failed to fetch meta tags:", err);
+      }
+    };
+    fetchTags();
   }, []);
 
 
@@ -531,7 +556,7 @@ export default function AllDocTable() {
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Meta tags</label>
                   <div style={{ width: "100%" }}>
-                    <div className={styles.metaTagRow} style={{ marginBottom: "0.5rem" }}>
+                    <div className={styles.metaTagRow} style={{ marginBottom: "0.5rem", position: "relative" }}>
                       <input
                         type="text"
                         value={currentMeta}
@@ -541,11 +566,59 @@ export default function AllDocTable() {
                         className={styles.metaTagInput}
                       />
                       <button
-                        onClick={addMetaTag}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          addMetaTag();
+                        }}
                         className={styles.metaTagAddButton}
                       >
                         <IoAdd />
                       </button>
+
+                      {currentMeta.trim() !== "" && suggestedTags.filter(tag => tag.toLowerCase().includes(currentMeta.trim().toLowerCase()) && !metaTags.includes(tag)).length > 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            backgroundColor: "#fff",
+                            border: "1px solid #ccc",
+                            borderTop: "none",
+                            borderBottomLeftRadius: "4px",
+                            borderBottomRightRadius: "4px",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                            zIndex: 10,
+                            maxHeight: "150px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {suggestedTags
+                            .filter(tag => tag.toLowerCase().includes(currentMeta.trim().toLowerCase()) && !metaTags.includes(tag))
+                            .map((tag, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => {
+                                  setMetaTags((prev) => [...prev, tag]);
+                                  setCurrentMeta("");
+                                }}
+                                style={{
+                                  padding: "8px 12px",
+                                  cursor: "pointer",
+                                  fontSize: "14px",
+                                  color: "#333",
+                                  borderBottom: "1px solid #f9f9f9",
+                                  transition: "background-color 0.2s",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f1f1")}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                              >
+                                {tag}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                     <div>
                       {metaTags.map((tag, index) => (

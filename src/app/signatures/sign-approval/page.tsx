@@ -21,7 +21,6 @@ interface SignedDocument {
   name: string;
   category: { category_name: string };
   signed_date: string;
-  // signed_by: string;
   status: string;
 }
 
@@ -50,8 +49,6 @@ const SignApprovalPage = () => {
           signed_date: doc.signed_date || doc.updated_at || new Date().toISOString(),
           status: doc.status || "Signed",
         }));
-
-        console.log("mappedDocs", mappedDocs);
         setDocuments(mappedDocs);
       } else {
         console.warn("API response is not an array:", response);
@@ -108,7 +105,6 @@ const SignApprovalPage = () => {
                   <th>Document Name</th>
                   <th>Category</th>
                   <th>Signed Date</th>
-                  {/* <th>Signed By</th> */}
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -125,9 +121,8 @@ const SignApprovalPage = () => {
                       </td>
                       <td>{doc.category?.category_name || "Uncategorized"}</td>
                       <td>{new Date(doc.signed_date).toLocaleDateString()}</td>
-                      {/* <td>{doc.signed_by}</td> */}
                       <td>
-                        <span className="badge bg-success" style={{ padding: "0.5em 0.7em" }}>
+                        <span className={styles.statusBadgeSigned}>
                           {doc.status}
                         </span>
                       </td>
@@ -162,7 +157,6 @@ const SignApprovalPage = () => {
       <Modal
         centered
         show={modalStates.viewModel}
-        // className="large-model"
         fullscreen
         onHide={() => {
           handleCloseModal("viewModel");
@@ -181,7 +175,6 @@ const SignApprovalPage = () => {
                 style={{ cursor: "pointer" }}
                 onClick={() => {
                   handleCloseModal("viewModel");
-                  // setMetaTags([])
                 }}
               />
             </div>
@@ -244,7 +237,6 @@ const SignApprovalPage = () => {
             <button
               onClick={() => {
                 handleCloseModal("viewModel");
-                // setMetaTags([])
               }}
               className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
             >
