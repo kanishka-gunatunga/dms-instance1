@@ -42,7 +42,6 @@ const SignApprovalPage = () => {
     setLoading(true);
     try {
       const response = await getWithAuth("signed-documents");
-      // Mapping logic in case backend structure varies slightly
       if (Array.isArray(response)) {
         const mappedDocs = response.map((doc: any) => ({
           id: doc.id,
