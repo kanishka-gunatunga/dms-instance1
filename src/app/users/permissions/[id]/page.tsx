@@ -8,7 +8,7 @@ import React, { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { IoSave } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import Link from "next/link";
 import { Checkbox, Divider } from "antd";
 import { useParams, useRouter } from 'next/navigation';
@@ -268,7 +268,7 @@ console.log("permission res: ",response)
                                 className={styles.btnCancel}
                                 style={{ textDecoration: "none" }}
                             >
-                                <MdOutlineCancel fontSize={16} /> No
+                                <MdCancel fontSize={16} /> No
                             </Link>
                         </div>
                     </div>

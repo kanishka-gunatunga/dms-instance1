@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { postWithAuth } from "@/utils/apiClient";
 import { IoSave } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import Link from "next/link";
 import { Checkbox, Divider } from "antd";
 import ToastMessage from "@/components/common/Toast";
@@ -34,7 +34,7 @@ const [isAdmin, setIsAdmin] = useState(false);
     const allGroups = [
         { name: "Dashboard", items: ["View Dashboard"] },
         { name: "All Documents", items: ["View Documents", "Create Document", "Edit Document", "Delete Document", "Archive Document", "Add Reminder", "Share Document", "Download Document", "Send Email", "Manage Sharable Link", "AI Options", "Upload New Version file", "Version History", "Comment", "Remove From Search"] },        
-        { name: "Assigned Documents", items: ["Create Document", "Edit Document", "Share Document", "Upload New Version", "Delete Document", "Send Email", "Manage Sharable Link", "Upload New Version file", "Version History", "Comment", "Remove From Search", "Download", "Add Reminder", "Archive"] },
+        { name: "Assigned Documents", items: ["View Documents","Create Document", "Edit Document", "Share Document", "Upload New Version", "Delete Document", "Send Email", "Manage Sharable Link", "Upload New Version file", "Version History", "Comment", "Remove From Search", "Download", "Add Reminder", "Archive"] },
         { name: "Archived Documents", items: ["View Documents", "Restore Document", "Delete Document"] },
         { name: "Advanced Search", items: ["Advanced Search"] },
         { name: "Deep Search", items: ["Deep Search", "Add Indexing", "Remove Indexing"] },
@@ -230,7 +230,7 @@ const [isAdmin, setIsAdmin] = useState(false);
                                 <IoSave fontSize={16} /> Yes
                             </button>
                             <Link href="/roles" className={styles.btnCancel}>
-                                <MdOutlineCancel fontSize={16} /> No
+                                <MdCancel fontSize={16} /> No
                             </Link>
                         </div>
                     </div>

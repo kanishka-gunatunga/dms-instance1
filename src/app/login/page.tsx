@@ -1,17 +1,18 @@
-/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import Paragraph from "@/components/common/Paragraph";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
 import { API_BASE_URL, getWithAuth } from "@/utils/apiClient";
 import ToastMessage from "@/components/common/Toast";
 import { Input } from "antd";
 import { useCompanyProfile } from "@/context/userCompanyProfile";
+import { PublicClientApplication, InteractionRequiredAuthError } from "@azure/msal-browser";
 
-const page = () => {
+const Page = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
@@ -22,28 +23,107 @@ const page = () => {
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [toastMessage, setToastMessage] = useState("");
   const [isAdEnabled, setIsAdEnabled] = useState<number>(0);
-  const { data } = useCompanyProfile();
+  const { data: companyData } = useCompanyProfile();
 
+  const handleLoginSuccess = useCallback((loginData: {
+    data: {
+      token: string;
+      id: string;
+      email: string;
+      type: string;
+      name: string;
+    };
+  }) => {
+    const expiresIn = 1;
+    Cookies.set("authToken", loginData.data.token, {
+      expires: expiresIn,
+      secure: false,
+      sameSite: "strict",
+    });
 
-  useEffect(() => {
-    fetchAdConnection()
+    Cookies.set("userId", loginData.data.id, { expires: expiresIn });
+    Cookies.set("userEmail", loginData.data.email, { expires: expiresIn });
+    Cookies.set("userType", loginData.data.type, { expires: expiresIn });
+    Cookies.set("userName", loginData.data.name, { expires: expiresIn });
+
+    window.location.href = "/";
+    setToastType("success");
+    setToastMessage("Logged in successfully!");
+    setShowToast(true);
   }, []);
 
+  const handleSilentLogin = useCallback(async () => {
+    try {
+      const configResponse = await fetch(`${API_BASE_URL}ad-config`);
+      const configData = await configResponse.json();
 
-  const fetchAdConnection = async () => {
+      if (configData.status !== "success") return;
+
+      const { client_id, tenant_id } = configData.data;
+
+      const msalConfig = {
+        auth: {
+          clientId: client_id,
+          authority: `https://login.microsoftonline.com/${tenant_id}`,
+          redirectUri: window.location.origin + "/auth.html",
+          navigateToLoginRequestUrl: false,
+        },
+        cache: {
+          cacheLocation: "sessionStorage" as const,
+          storeAuthStateInCookie: false,
+        },
+      };
+
+      const msalInstance = new PublicClientApplication(msalConfig);
+      await msalInstance.initialize();
+
+      const silentRequest = {
+        scopes: ["User.Read", "openid", "profile"],
+      };
+
+      const tokenResponse = await msalInstance.ssoSilent(silentRequest);
+
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("email", tokenResponse.account?.username || "");
+      formData.append("token", tokenResponse.accessToken);
+
+      const response = await fetch(`${API_BASE_URL}login-with-ad`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const responseData = await response.json();
+      if (responseData.status === "success" && responseData.data?.token) {
+        handleLoginSuccess(responseData);
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.log("Silent SSO failed or requires interaction", error);
+    }
+  }, [handleLoginSuccess]);
+
+  const fetchAdConnection = useCallback(async () => {
     try {
       const response = await getWithAuth(`get-ad-connection`);
-      console.log("response ad", response)
+      console.log("response ad", response);
       if (response.status === "fail") {
         // setIsAdEnabled(0)
       } else {
-        setIsAdEnabled(response)
+        setIsAdEnabled(response);
+        if (response === 1) {
+          handleSilentLogin();
+        }
       }
     } catch (error) {
       console.error("Error new version updating:", error);
     }
-  };
+  }, [handleSilentLogin]);
 
+  useEffect(() => {
+    fetchAdConnection();
+  }, [fetchAdConnection]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,7 +131,8 @@ const page = () => {
 
     const validationErrors: { email?: string; password?: string } = {};
     if (!email) validationErrors.email = "Email is required";
-    if (!password) validationErrors.password = "Password is required";
+    if (!isAdEnabled && !password) validationErrors.password = "Password is required";
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -64,7 +145,6 @@ const page = () => {
       return new Promise((resolve) => {
         if (!navigator.geolocation) {
           resolve({});
-          // alert("Geolocation is not supported by your browser.");
           setToastType("error");
           setToastMessage("Geolocation is not supported by your browser.");
           setShowToast(true);
@@ -90,72 +170,113 @@ const page = () => {
     setLoading(true);
 
     try {
-      const { latitude, longitude } = await getLocation();
+      if (isAdEnabled) {
+        const configResponse = await fetch(`${API_BASE_URL}ad-config`);
+        const configData = await configResponse.json();
 
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
+        if (configData.status !== "success") {
+          throw new Error("Failed to fetch AD configuration from backend.");
+        }
 
-      // formData.append("type", "normal");
-      if (latitude !== undefined)
-        formData.append("latitude", latitude.toString());
-      if (longitude !== undefined)
-        formData.append("longitude", longitude.toString());
-      if (!isAdEnabled) formData.append("type", "normal");
+        const { client_id, tenant_id } = configData.data;
 
-      // for (const [key, value] of formData.entries()) {
-      //   console.log(`${key}: ${value}`);
-      // }
+        const msalConfig = {
+          auth: {
+            clientId: client_id,
+            authority: `https://login.microsoftonline.com/${tenant_id}`,
+            redirectUri: window.location.origin + "/auth.html",
+            navigateToLoginRequestUrl: false,
+          },
+          cache: {
+            cacheLocation: "sessionStorage" as const,
+            storeAuthStateInCookie: false,
+          },
+        };
 
-      const endpoint = isAdEnabled
-        ? `${API_BASE_URL}login-with-ad`
-        : `${API_BASE_URL}login`;
+        const msalInstance = new PublicClientApplication(msalConfig);
+        await msalInstance.initialize();
 
-       
-      const response = await fetch(endpoint, {
-        method: "POST",
-        body: formData,
-      });
+        let tokenResponse;
+        try {
+          tokenResponse = await msalInstance.loginPopup({
+            scopes: ["User.Read", "openid", "profile"],
+            loginHint: email,
+          });
+        } catch (error: unknown) {
+          console.error("Popup error:", error);
+          if (
+            error instanceof InteractionRequiredAuthError ||
+            (error as { errorCode?: string }).errorCode === "timed_out" ||
+            (error as { errorCode?: string }).errorCode === "user_cancelled"
+          ) {
+            setToastType("error");
+            setToastMessage("AD authentication was cancelled or timed out.");
+            setShowToast(true);
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
 
-      const data = await response.json();
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("token", tokenResponse.accessToken);
 
-      if (data.data?.token) {
-        const expiresIn = 1;
-        Cookies.set("authToken", data.data.token, {
-          expires: expiresIn,
-          secure: true,
-          sameSite: "strict",
+        const response = await fetch(`${API_BASE_URL}login-with-ad`, {
+          method: "POST",
+          body: formData,
         });
 
-        Cookies.set("userId", data.data.id, { expires: expiresIn });
-        Cookies.set("userEmail", data.data.email, { expires: expiresIn });
-        Cookies.set("userType", data.data.type, { expires: expiresIn });
-        Cookies.set("userName", data.data.name, { expires: expiresIn });
+        const loginResponseData = await response.json();
 
-        window.location.href = "/";
-        setToastType("success");
-        setToastMessage("Logged in successfully!");
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-        }, 5000);
+        if (loginResponseData.status === "success" && loginResponseData.data?.token) {
+          handleLoginSuccess(loginResponseData);
+        } else {
+          setToastType("error");
+          setToastMessage(loginResponseData.message || "Login failed. Please check your AD account.");
+          setShowToast(true);
+        }
       } else {
-        setToastType("error");
-        setToastMessage("Login failed. Please check your credentials.");
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-        }, 5000);
+        const { latitude, longitude } = await getLocation();
+
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("password", password);
+
+        if (latitude !== undefined) formData.append("latitude", latitude.toString());
+        if (longitude !== undefined) formData.append("longitude", longitude.toString());
+
+        formData.append("type", "normal");
+
+        const response = await fetch(`${API_BASE_URL}login`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const normalLoginData = await response.json();
+
+        if (normalLoginData.status === "success" && normalLoginData.data?.token) {
+          handleLoginSuccess(normalLoginData);
+        } else {
+          setToastType("error");
+          setToastMessage("Login failed. Please check your credentials.");
+          setShowToast(true);
+        }
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during login.";
       console.error("Error during login:", error);
+      setToastType("error");
+      setToastMessage(errorMessage);
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const imageUrl = data?.logo_url || '/logo.png';
-  const bannerUrl = data?.banner_url || '/login-image.png';
+  const imageUrl = companyData?.logo_url || "/logo.png";
+  const bannerUrl = companyData?.banner_url || "/login-image.png";
+
   return (
     <>
       <div
@@ -203,54 +324,53 @@ const page = () => {
           >
             <div className="d-flex flex-column">
               <div className="d-flex flex-column mt-3">
-                <label htmlFor="email">Email</label>
-                <Input type="email"
-                  placeholder="Email"
+                <label htmlFor="email">{isAdEnabled ? "User Name" : "Email"}</label>
+                <Input
+                  type="email"
+                  placeholder={isAdEnabled ? "Enter your User Name" : "Email"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`mb-3 ${errors.email ? "is-invalid" : ""}`} />
-                {errors.email && (
-                  <div className="text-danger">{errors.email}</div>
-                )}
-              </div>
-              <div className="d-flex flex-column mt-3">
-                <label htmlFor="password">Password</label>
-                <Input.Password
-                  placeholder="Input password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={errors.password ? "is-invalid" : ""}
+                  className={`mb-3 ${errors.email ? "is-invalid" : ""}`}
                 />
-                {errors.password && (
-                  <div className="text-danger">{errors.password}</div>
+                {errors.email && <div className="text-danger">{errors.email}</div>}
+                {isAdEnabled === 1 && (
+                  <p
+                    className="mt-1"
+                    style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}
+                  >
+                    Please enter your User Name to proceed with Single Sign-On.
+                  </p>
                 )}
               </div>
+              {!isAdEnabled && (
+                <div className="d-flex flex-column mt-3">
+                  <label htmlFor="password">Password</label>
+                  <Input.Password
+                    placeholder="Input password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={errors.password ? "is-invalid" : ""}
+                  />
+                  {errors.password && <div className="text-danger">{errors.password}</div>}
+                </div>
+              )}
 
-              <Link
-                href="/forgot-password"
-                style={{
-                  fontSize: "14px",
-                  color: "#333",
-                  textDecoration: "none",
-                }}
-                className="py-3 d-flex align-self-end"
-              >
-                Forgot Password?
-              </Link>
+              {!isAdEnabled && (
+                <Link
+                  href="/forgot-password"
+                  style={{
+                    fontSize: "14px",
+                    color: "#333",
+                    textDecoration: "none",
+                  }}
+                  className="py-3 d-flex align-self-end"
+                >
+                  Forgot Password?
+                </Link>
+              )}
               <button type="submit" className="loginButton text-white" disabled={loading}>
                 {loading ? "Logging in..." : "Login"}
               </button>
-              {/* <Link
-                href="/login-with-ad"
-                style={{
-                  fontSize: "14px",
-                  color: "#333",
-                  textDecoration: "none",
-                }}
-                className="py-1 px-2 mt-4 d-flex align-self-center justify-content-center w-100 border rounded text-center"
-              >
-                <p className="mb-0">Login with AD</p>
-              </Link> */}
             </div>
           </form>
         </div>
@@ -265,4 +385,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

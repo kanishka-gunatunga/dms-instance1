@@ -8,6 +8,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import useAuth from "@/hooks/useAuth";
 import { CategoryDropdownItem, UserDropdownItem } from "@/types/types";
 import { fetchAndMapUserData, fetchCategoryData, fetchDocumentAuditTrail } from "@/utils/dataFetchFunctions";
+import { getFlattenedCategories } from "@/utils/commonFunctions";
 import React, { useEffect, useState } from "react";
 import {
   Dropdown,
@@ -316,17 +317,16 @@ export default function AllDocTable() {
                   className="custom-dropdown-text-start text-start w-100"
                   onSelect={(value) => handleCategorySelect(value || "")}
                 >
-                  {categoryDropDownData.map((category) => (
+                  {getFlattenedCategories(categoryDropDownData).map((category) => (
                     <Dropdown.Item
                       key={category.id}
                       eventKey={category.id.toString()}
                       style={{
-                        fontWeight:
-                          category.parent_category === "none" ? "bold" : "normal",
-                        marginLeft: category.parent_category === "none" ? "0px" : "20px",
+                        fontWeight: category.level === 0 ? "bold" : "normal",
+                        paddingLeft: `${category.level * 15 + 10}px`,
                       }}
                     >
-                      {category.category_name}
+                      {category.level > 0 ? "- ".repeat(category.level) : ""}{category.category_name}
                     </Dropdown.Item>
                   ))}
                 </DropdownButton> */}

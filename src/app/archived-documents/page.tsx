@@ -8,6 +8,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import useAuth from "@/hooks/useAuth";
 import { CategoryDropdownItem } from "@/types/types";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
+import { getFlattenedCategories } from "@/utils/commonFunctions";
 import {
   fetchArchivedDocuments,
   fetchCategoryData,
@@ -27,7 +28,7 @@ import { IoCheckmark, IoClose } from "react-icons/io5";
 import {
   MdArrowDropDown,
   MdArrowDropUp,
-  MdOutlineCancel,
+  MdCancel,
   MdRestore,
 } from "react-icons/md";
 import { useUserContext } from "@/context/userContext";
@@ -44,7 +45,7 @@ interface TableItem {
   id: number;
   name: string;
   category: Category;
-  storage: string;
+  // storage: string;
   created_date: string;
   created_by: string;
   archived_by: string;
@@ -80,7 +81,7 @@ export default function AllDocTable() {
     term: "",
     meta_tags: "",
     category: "",
-    storage: "",
+    // storage: "",
   });
   const [isLoadingTable, setIsLoadingTable] = useState(false);
 
@@ -247,12 +248,12 @@ export default function AllDocTable() {
     }));
   };
 
-  const handleStorageSelect = (storage: string) => {
-    setFilterData((prevState) => ({
-      ...prevState,
-      storage: storage,
-    }));
-  };
+  // const handleStorageSelect = (storage: string) => {
+  //   setFilterData((prevState) => ({
+  //     ...prevState,
+  //     storage: storage,
+  //   }));
+  // };
 
   const handleSearch = async () => {
     const formData = new FormData();
@@ -264,9 +265,10 @@ export default function AllDocTable() {
       formData.append("meta_tags", filterData.meta_tags);
     } else if (filterData.category) {
       formData.append("category", filterData.category);
-    } else if (filterData.storage) {
-      formData.append("storage", filterData.storage);
-    }
+    } 
+    // else if (filterData.storage) {
+    //   formData.append("storage", filterData.storage);
+    // }
     // else {
     //   console.log("No filter data, fetching all documents...");
     //   fetchArchivedDocuments(setDummyData);
@@ -359,23 +361,22 @@ export default function AllDocTable() {
                       None
                     </Dropdown.Item>
 
-                    {categoryDropDownData.map((category) => (
+                    {getFlattenedCategories(categoryDropDownData).map((category) => (
                       <Dropdown.Item
                         key={category.id}
                         eventKey={category.id.toString()}
                         style={{
-                          fontWeight:
-                            category.parent_category === "none" ? "bold" : "normal",
-                          paddingLeft: category.parent_category === "none" ? "10px" : "20px",
+                          fontWeight: category.level === 0 ? "bold" : "normal",
+                          paddingLeft: `${category.level * 15 + 10}px`,
                         }}
                       >
-                        {category.category_name}
+                        {category.level > 0 ? "- ".repeat(category.level) : ""}{category.category_name}
                       </Dropdown.Item>
                     ))}
                   </DropdownButton>
                 </div>
               </div>
-              <div className={styles.filterItem}>
+              {/* <div className={styles.filterItem}>
                 <div className="input-group">
                   <DropdownButton
                     id="dropdown-storage-button"
@@ -397,7 +398,7 @@ export default function AllDocTable() {
                     </Dropdown.Item>
                   </DropdownButton>
                 </div>
-              </div>
+              </div> */}
             </div>
           <div>
             {isLoadingTable && <LoadingBar />}
@@ -410,7 +411,7 @@ export default function AllDocTable() {
                     <th>Actions</th>
                     <th className="text-start">Name</th>
                     <th className="text-start">Document Category</th>
-                    <th className="text-start">Storage</th>
+                    {/* <th className="text-start">Storage</th> */}
                     <th
                       className={`text-start ${styles.sortableTh}`}
                       onClick={handleSort}
@@ -460,7 +461,7 @@ export default function AllDocTable() {
                           {item.name}
                         </td>
                         <td>{item.category.category_name}</td>
-                        <td>{item.storage}</td>
+                        {/* <td>{item.storage}</td> */}
                         <td>{item.archived_date}</td>
                         <td>{item.archived_by}</td>
                       </tr>
@@ -546,7 +547,7 @@ export default function AllDocTable() {
                 }}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> No
+                <MdCancel fontSize={16} /> No
               </button>
             </div>
           </div>
@@ -602,7 +603,7 @@ export default function AllDocTable() {
                 }}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> No
+                <MdCancel fontSize={16} /> No
               </button>
             </div>
           </div>

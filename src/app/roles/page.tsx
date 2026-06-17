@@ -13,7 +13,7 @@ import { FiTrash } from "react-icons/fi";
 import Link from "next/link";
 import { getWithAuth } from "@/utils/apiClient";
 import ToastMessage from "@/components/common/Toast";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import { IoCheckmark, IoClose } from "react-icons/io5";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
@@ -257,7 +257,7 @@ export default function AllDocTable() {
                 }}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> No
+                <MdCancel fontSize={16} /> No
               </button>
             </div>
           </div>

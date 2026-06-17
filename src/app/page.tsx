@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 // import {PieChart, Pie, Legend, ResponsiveContainer, Cell} from "recharts";
 import useAuth from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchRemindersData, fetchRemindersDataUser } from "@/utils/dataFetchFunctions";
 import StatCard from "@/components/StatCard";
 import PieChartCard from "@/components/PieChartCard";
@@ -216,7 +216,7 @@ export default function Home() {
     //     }
     // }, [isAuthenticated]);
 
-    const fetchAllData = async () => {
+    const fetchAllData = useCallback(async () => {
         if (typeof isAdmin === 'undefined') return;
 
         setIsLoading(true);
@@ -290,7 +290,7 @@ export default function Home() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isAdmin]);
 
     // if (isAuthenticated) {
     //     fetchAllData();
@@ -386,7 +386,7 @@ export default function Home() {
         if (isAuthenticated) {
             fetchAllData();
         }
-    }, [isAuthenticated, isAdmin]);
+    }, [isAuthenticated, isAdmin, fetchAllData]);
 
 
     if (!isAuthenticated || isLoading) {

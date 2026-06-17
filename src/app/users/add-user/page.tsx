@@ -9,9 +9,10 @@ import { DropdownButton, Dropdown } from "react-bootstrap";
 import { postWithAuth } from "@/utils/apiClient";
 import { useRouter } from "next/navigation";
 import { IoClose, IoSaveOutline, IoEye, IoEyeOff } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import { RoleDropdownItem } from "@/types/types";
 import { fetchRoleData, fetchSectors } from "@/utils/dataFetchFunctions";
+import { getFlattenedSectors } from "@/utils/commonFunctions";
 import ToastMessage from "@/components/common/Toast";
 import { Input } from "antd";
 import { SectorDropdownItem } from "@/types/types";
@@ -49,7 +50,7 @@ export default function AllDocTable() {
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [toastMessage, setToastMessage] = useState("");
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [selectedSectorId, setSelectedSectorId] = useState<string>("");
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [sectorDropDownData, setSectorDropDownData] = useState<
     SectorDropdownItem[]
   >([]);
@@ -58,7 +59,13 @@ export default function AllDocTable() {
 
   const router = useRouter();
   const handleSectorSelect = (sectorId: string) => {
-    setSelectedSectorId(sectorId);
+    if (!selectedSectorIds.includes(sectorId)) {
+      setSelectedSectorIds((prev) => [...prev, sectorId]);
+    }
+  };
+
+  const handleRemoveSector = (sectorId: string) => {
+    setSelectedSectorIds((prev) => prev.filter((id) => id !== sectorId));
   };
 
   useEffect(() => {
@@ -110,7 +117,7 @@ export default function AllDocTable() {
     } else if (!confirmPassword.trim()) {
       newErrors.password_confirmation = "Confirm password is required.";
     }
-    if (!selectedSectorId) newErrors.sector = "Sector is required.";
+    if (selectedSectorIds.length === 0) newErrors.sector = "Sector is required.";
     return newErrors;
   };
 
@@ -131,7 +138,7 @@ export default function AllDocTable() {
     formData.append("password", password);
     formData.append("password_confirmation", confirmPassword);
     formData.append("role", JSON.stringify(selectedRoleIds));
-    formData.append("sector", selectedSectorId);
+    formData.append("sector", JSON.stringify(selectedSectorIds));
     // for (const [key, value] of formData.entries()) {
     //   console.log(`${key}: ${value}`);
     // }
@@ -327,25 +334,20 @@ export default function AllDocTable() {
                   <DropdownButton
                     id="dropdown-category-button"
                     title={
-                      selectedSectorId
-                        ? sectorDropDownData.find(
-                          (item) => item.id.toString() === selectedSectorId
-                        )?.sector_name
+                      selectedSectorIds.length > 0
+                        ? `${selectedSectorIds.length} Sectors Selected`
                         : "Select Sector"
                     }
                     className="custom-dropdown-text-start text-start w-100"
                     onSelect={(value) => handleSectorSelect(value || "")}
                   >
-                    {sectorDropDownData.map((sector) => (
+                    {getFlattenedSectors(sectorDropDownData).map((sector) => (
                       <Dropdown.Item
                         key={sector.id}
                         eventKey={sector.id.toString()}
-                        data-indent={sector.parent_sector === "none" ? undefined : "child"}
                         style={{
-                          fontWeight:
-                            sector.parent_sector === "none"
-                              ? "bold"
-                              : "normal",
+                          fontWeight: sector.level === 0 ? "bold" : "normal",
+                          paddingLeft: `${sector.level * 20 + 10}px`,
                         }}
                       >
                         {sector.sector_name}
@@ -353,6 +355,26 @@ export default function AllDocTable() {
                     ))}
                   </DropdownButton>
                   {errors.sector && <div className={styles.errorText}>{errors.sector}</div>}
+                  <div className="mt-1">
+                    {selectedSectorIds.map((sectorId) => {
+                      const sector = sectorDropDownData.find(
+                        (item) => item.id.toString() === sectorId
+                      );
+                      return sector ? (
+                        <span
+                          key={sectorId}
+                          className={`${styles.badgeTag} d-inline-flex align-items-center`}
+                        >
+                          {sector.sector_name}
+                          <IoClose
+                            className="ms-2"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handleRemoveSector(sectorId)}
+                          />
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -369,7 +391,7 @@ export default function AllDocTable() {
                 onClick={() => router.push("/users")}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> Cancel
+                <MdCancel fontSize={16} /> Cancel
               </button>
             </div>
           </div>

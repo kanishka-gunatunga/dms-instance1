@@ -8,7 +8,7 @@ import useAuth from "@/hooks/useAuth";
 import React, { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { IoCheckmark, IoClose, IoSaveOutline } from "react-icons/io5";
-import { MdModeEditOutline, MdOutlineCancel, MdUpload } from "react-icons/md";
+import { MdModeEditOutline, MdCancel, MdUpload } from "react-icons/md";
 import { deleteWithAuth, getWithAuth, postAxiosWithAuth, postWithAuth, postWithAuthXML } from "@/utils/apiClient";
 import { useUserContext } from "@/context/userContext";
 import ToastMessage from "@/components/common/Toast";
@@ -16,7 +16,8 @@ import Link from "next/link";
 import { Dropdown, DropdownButton, Form, Modal, Pagination, Tab, Table, Tabs } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import { CategoryDropdownItem, DocumentData, FtpAccDropdownItem, SectorDropdownItem } from "@/types/types";
-import { fetchCategoryData, fetchFtpAccounts, fetchSectors } from "@/utils/dataFetchFunctions";
+import { fetchCategoryData, fetchFtpAccounts, fetchSectors, fetchSectorsForUser } from "@/utils/dataFetchFunctions";
+import { getFlattenedSectors, getFlattenedCategories } from "@/utils/commonFunctions";
 import { Button, Checkbox, Progress } from "antd";
 import { FaEllipsisV, FaShareAlt } from "react-icons/fa";
 import Paragraph from "@/components/common/Paragraph";
@@ -120,12 +121,27 @@ export default function AllDocTable() {
       console.error("API call failed", error);
     }
   };
-  const handleSectorSelect = (sectorId: string) => {
+  const handleSectorSelect = async (sectorId: string) => {
     setSelectedSectorId(sectorId);
+    setSelectedCategoryId("");
+    setTemplateUrl("");
     setExcelData((prevData) => ({
       ...prevData,
       sector_category: sectorId,
+      category: "",
     }));
+
+    if (sectorId) {
+      try {
+        const response = await getWithAuth(`sector-details/${sectorId}`);
+        setCategoryDropDownData(response?.categories || []);
+      } catch (error) {
+        console.error("Failed to load categories for sector:", error);
+        setCategoryDropDownData([]);
+      }
+    } else {
+      setCategoryDropDownData([]);
+    }
   };
 
   const handleInputChange = (e: { target: { id: any; value: any; }; }) => {
@@ -176,12 +192,27 @@ export default function AllDocTable() {
     }
   };
 
-  const handleSectorSelectLocal = (sectorId: string) => {
+  const handleSectorSelectLocal = async (sectorId: string) => {
     setSelectedSectorIdLocal(sectorId);
+    setSelectedCategoryIdLocal("");
+    setTemplateUrlLocal("");
     setExcelDataLocal((prevData) => ({
       ...prevData,
       sector_category: sectorId,
+      category: "",
     }));
+
+    if (sectorId) {
+      try {
+        const response = await getWithAuth(`sector-details/${sectorId}`);
+        setCategoryDropDownDataLocal(response?.categories || []);
+      } catch (error) {
+        console.error("Failed to load categories for sector:", error);
+        setCategoryDropDownDataLocal([]);
+      }
+    } else {
+      setCategoryDropDownDataLocal([]);
+    }
   };
 
   const handleInputChangeLocal = (e: { target: { id: any; value: any; }; }) => {
@@ -202,11 +233,11 @@ export default function AllDocTable() {
 
 
   useEffect(() => {
-    fetchCategoryData(setCategoryDropDownData);
-    fetchSectors(setSectorDropDownData)
-    fetchCategoryData(setCategoryDropDownDataLocal);
-    fetchSectors(setSectorDropDownDataLocal)
-  }, []);
+    if (userId) {
+      fetchSectorsForUser(userId, setSectorDropDownData);
+      fetchSectorsForUser(userId, setSectorDropDownDataLocal);
+    }
+  }, [userId]);
 
   useEffect(() => {
   }, [categoryDropDownData]);
@@ -632,7 +663,36 @@ export default function AllDocTable() {
                       )}
                     </div>
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>2. Category</label>
+                      <label className={styles.formLabel}>2. Sectors</label>
+                      <div className={styles.dropdownWrapper}>
+                      <DropdownButton
+                        id="dropdown-sector-button-local"
+                        title={
+                          selectedSectorIdLocal
+                            ? sectorDropDownDataLocal.find((item) => item.id.toString() === selectedSectorIdLocal)?.sector_name
+                            : "Select Sector"
+                        }
+                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                        onSelect={(value) => handleSectorSelectLocal(value || "")}
+                      >
+                          {getFlattenedSectors(sectorDropDownDataLocal).map((sector) => (
+                            <Dropdown.Item
+                              key={sector.id}
+                              eventKey={sector.id.toString()}
+                              style={{
+                                fontWeight: sector.level === 0 ? "bold" : "normal",
+                                paddingLeft: `${sector.level * 20 + 10}px`,
+                              }}
+                            >
+                              {sector.sector_name}
+                            </Dropdown.Item>
+                          ))}
+                      </DropdownButton>
+                      </div>
+                      {errorsLocal.sector_category && <div className={styles.errorMessage}>{errorsLocal.sector_category}</div>}
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>3. Category</label>
                       <div className={styles.dropdownWrapper}>
                       <DropdownButton
                         id="dropdown-category-button-local"
@@ -646,33 +706,18 @@ export default function AllDocTable() {
                         className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
                         onSelect={(value) => handleCategorySelectLocal(value || "")}
                       >
-                            {categoryDropDownDataLocal
-                              .filter((category) => category.parent_category === "none") 
-                              .map((parentCategory) => (
-                                <React.Fragment key={parentCategory.id}>
-                                  <Dropdown.Item
-                                    eventKey={parentCategory.id.toString()}
-                                    style={{ fontWeight: "bold", marginLeft: "0px" }}
-                                  >
-                                    {parentCategory.category_name}
-                                  </Dropdown.Item>
-
-                                  {categoryDropDownDataLocal
-                                    .filter(
-                                      (childCategory) =>
-                                        childCategory.parent_category.toString() === parentCategory.id.toString()
-                                    )
-                                    .map((childCategory) => (
-                                      <Dropdown.Item
-                                        key={childCategory.id}
-                                        eventKey={childCategory.id.toString()}
-                                        style={{ marginLeft: "20px" }}
-                                      >
-                                        {childCategory.category_name}
-                                      </Dropdown.Item>
-                                    ))}
-                                </React.Fragment>
-                              ))}
+                            {getFlattenedCategories(categoryDropDownDataLocal).map((category) => (
+                              <Dropdown.Item
+                                key={category.id}
+                                eventKey={category.id.toString()}
+                                style={{
+                                  fontWeight: category.level === 0 ? "bold" : "normal",
+                                  paddingLeft: `${category.level * 20 + 10}px`,
+                                }}
+                              >
+                                {category.category_name}
+                              </Dropdown.Item>
+                            ))}
                       </DropdownButton>
                       </div>
                       {errorsLocal.category && <div className={styles.errorMessage}>{errorsLocal.category}</div>}
@@ -682,46 +727,6 @@ export default function AllDocTable() {
                           Download Template
                         </a>
                       )}
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>3. Sectors</label>
-                      <div className={styles.dropdownWrapper}>
-                      <DropdownButton
-                        id="dropdown-sector-button-local"
-                        title={
-                          selectedSectorIdLocal
-                            ? sectorDropDownDataLocal.find((item) => item.id.toString() === selectedSectorIdLocal)?.sector_name
-                            : "Select Sector"
-                        }
-                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
-                        onSelect={(value) => handleSectorSelectLocal(value || "")}
-                      >
-                          {sectorDropDownDataLocal
-                            .filter((sector) => sector.parent_sector === "none")
-                            .map((parentSector) => (
-                              <React.Fragment key={parentSector.id}>
-                                <Dropdown.Item
-                                  eventKey={parentSector.id.toString()}
-                                  style={{ fontWeight: "bold", paddingLeft: "10px" }}
-                                >
-                                  {parentSector.sector_name}
-                                </Dropdown.Item>
-                                {sectorDropDownDataLocal
-                                  .filter((sector) => sector.parent_sector === parentSector.id.toString())
-                                  .map((childSector) => (
-                                    <Dropdown.Item
-                                      key={childSector.id}
-                                      eventKey={childSector.id.toString()}
-                                      style={{ paddingLeft: "30px" }}
-                                    >
-                                      {childSector.sector_name}
-                                    </Dropdown.Item>
-                                  ))}
-                              </React.Fragment>
-                            ))}
-                      </DropdownButton>
-                      </div>
-                      {errorsLocal.sector_category && <div className={styles.errorMessage}>{errorsLocal.sector_category}</div>}
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>4. Select excel document</label>
@@ -782,25 +787,41 @@ export default function AllDocTable() {
                     </div> */}
 
                     {uploadStarted && (
-                      <div className={styles.uploadProgressList}>
-                        {uploadProgress.map((fileProgress, index) => (
-                          <div key={index} className={styles.uploadProgressItem}>
-                            <p className={styles.uploadProgressFileName}>{fileProgress.fileName}</p>
-                            <p
-                              className={`${styles.uploadProgressStatus} ${
-                                fileProgress.status === "pending" ? styles.statusPending :
-                                fileProgress.status === "ongoing" ? styles.statusOngoing :
-                                fileProgress.status === "completed" ? styles.statusCompleted :
-                                styles.statusFailed
-                              }`}
-                            >
-                              {fileProgress.status === "pending" && "Pending"}
-                              {fileProgress.status === "ongoing" && "Uploading..."}
-                              {fileProgress.status === "completed" && "Completed"}
-                              {fileProgress.status === "failed" && "Failed"}
-                            </p>
-                          </div>
-                        ))}
+                      <div style={{ width: "100%", marginTop: "1rem" }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                          <p style={{ fontSize: "14px", fontWeight: 600, marginBottom: "0.25rem" }}>
+                            Uploading {uploadProgress.filter(p => p.status === "completed" || p.status === "failed").length} out of {uploadProgress.length}
+                          </p>
+                          <Progress 
+                            percent={Math.round((uploadProgress.filter(p => p.status === "completed" || p.status === "failed").length / uploadProgress.length) * 100)} 
+                            status="active"
+                          />
+                        </div>
+                        <div 
+                          className={`${styles.uploadProgressList} custom-scroll`}
+                          style={{ maxHeight: '150px', overflowY: 'auto', overflowX: 'hidden' }}
+                        >
+                          {uploadProgress.map((fileProgress, index) => (
+                            <div key={index} className={styles.uploadProgressItem}>
+                              <p className={styles.uploadProgressFileName} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "70%" }}>
+                                {fileProgress.fileName}
+                              </p>
+                              <p
+                                className={`${styles.uploadProgressStatus} ${
+                                  fileProgress.status === "pending" ? styles.statusPending :
+                                  fileProgress.status === "ongoing" ? styles.statusOngoing :
+                                  fileProgress.status === "completed" ? styles.statusCompleted :
+                                  styles.statusFailed
+                                }`}
+                              >
+                                {fileProgress.status === "pending" && "Pending"}
+                                {fileProgress.status === "ongoing" && "Uploading..."}
+                                {fileProgress.status === "completed" && "Completed"}
+                                {fileProgress.status === "failed" && "Failed"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -833,7 +854,7 @@ export default function AllDocTable() {
                       window.location.reload();
                     }}
                   >
-                    <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                    <MdCancel fontSize={16} className="me-1" /> Cancel
                   </Link>
                 </div>
               </div>
@@ -854,7 +875,36 @@ export default function AllDocTable() {
                       {errors.document && <div className={styles.errorMessage}>{errors.document}</div>}
                     </div>
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>2. Category</label>
+                      <label className={styles.formLabel}>2. Sectors</label>
+                      <div className={styles.dropdownWrapper}>
+                      <DropdownButton
+                        id="dropdown-sector-button-excel"
+                        title={
+                          selectedSectorId
+                            ? sectorDropDownData.find((item) => item.id.toString() === selectedSectorId)?.sector_name
+                            : "Select Sector"
+                        }
+                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                        onSelect={(value) => handleSectorSelect(value || "")}
+                      >
+                          {getFlattenedSectors(sectorDropDownData).map((sector) => (
+                            <Dropdown.Item
+                              key={sector.id}
+                              eventKey={sector.id.toString()}
+                              style={{
+                                fontWeight: sector.level === 0 ? "bold" : "normal",
+                                paddingLeft: `${sector.level * 20 + 10}px`,
+                              }}
+                            >
+                              {sector.sector_name}
+                            </Dropdown.Item>
+                          ))}
+                      </DropdownButton>
+                      </div>
+                      {errors.sector_category && <div className={styles.errorMessage}>{errors.sector_category}</div>}
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>3. Category</label>
                       <div className={styles.dropdownWrapper}>
                       <DropdownButton
                         id="dropdown-category-button-excel"
@@ -868,32 +918,18 @@ export default function AllDocTable() {
                         className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
                         onSelect={(value) => handleCategorySelect(value || "")}
                       >
-                            {categoryDropDownData
-                              .filter((category) => category.parent_category === "none")
-                              .map((parentCategory) => (
-                                <React.Fragment key={parentCategory.id}>
-                                  <Dropdown.Item
-                                    eventKey={parentCategory.id.toString()}
-                                    style={{ fontWeight: "bold", marginLeft: "0px" }}
-                                  >
-                                    {parentCategory.category_name}
-                                  </Dropdown.Item>
-                                  {categoryDropDownData
-                                    .filter(
-                                      (childCategory) =>
-                                        childCategory.parent_category.toString() === parentCategory.id.toString()
-                                    )
-                                    .map((childCategory) => (
-                                      <Dropdown.Item
-                                        key={childCategory.id}
-                                        eventKey={childCategory.id.toString()}
-                                        style={{ marginLeft: "20px" }} 
-                                      >
-                                        {childCategory.category_name}
-                                      </Dropdown.Item>
-                                    ))}
-                                </React.Fragment>
-                              ))}
+                            {getFlattenedCategories(categoryDropDownData).map((category) => (
+                              <Dropdown.Item
+                                key={category.id}
+                                eventKey={category.id.toString()}
+                                style={{
+                                  fontWeight: category.level === 0 ? "bold" : "normal",
+                                  paddingLeft: `${category.level * 20 + 10}px`,
+                                }}
+                              >
+                                {category.category_name}
+                              </Dropdown.Item>
+                            ))}
                       </DropdownButton>
                       </div>
                       {errors.category && <div className={styles.errorMessage}>{errors.category}</div>}
@@ -903,46 +939,6 @@ export default function AllDocTable() {
                           Download Template
                         </a>
                       )}
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>3. Sectors</label>
-                      <div className={styles.dropdownWrapper}>
-                      <DropdownButton
-                        id="dropdown-sector-button-excel"
-                        title={
-                          selectedSectorId
-                            ? sectorDropDownData.find((item) => item.id.toString() === selectedSectorId)?.sector_name
-                            : "Select Sector"
-                        }
-                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
-                        onSelect={(value) => handleSectorSelect(value || "")}
-                      >
-                          {sectorDropDownData
-                            .filter((sector) => sector.parent_sector === "none")
-                            .map((parentSector) => (
-                              <React.Fragment key={parentSector.id}>
-                                <Dropdown.Item
-                                  eventKey={parentSector.id.toString()}
-                                  style={{ fontWeight: "bold", paddingLeft: "10px" }}
-                                >
-                                  {parentSector.sector_name}
-                                </Dropdown.Item>
-                                {sectorDropDownData
-                                  .filter((sector) => sector.parent_sector === parentSector.id.toString())
-                                  .map((childSector) => (
-                                    <Dropdown.Item
-                                      key={childSector.id}
-                                      eventKey={childSector.id.toString()}
-                                      style={{ paddingLeft: "30px" }}
-                                    >
-                                      {childSector.sector_name}
-                                    </Dropdown.Item>
-                                  ))}
-                              </React.Fragment>
-                            ))}
-                      </DropdownButton>
-                      </div>
-                      {errors.sector_category && <div className={styles.errorMessage}>{errors.sector_category}</div>}
                     </div>
                     
                     {/* <div className={styles.formGroup}>
@@ -977,7 +973,7 @@ export default function AllDocTable() {
                     href="/bulk-upload/add"
                     className={styles.btnCancel}
                   >
-                    <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                    <MdCancel fontSize={16} className="me-1" /> Cancel
                   </Link>
                 </div>
               </div>

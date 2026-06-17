@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Button, Calendar, Tag, message, Modal as AntModal } from 'antd';
 import { Modal } from "react-bootstrap";
 import { BsEye, BsDownload, BsArrowRepeat } from 'react-icons/bs';
@@ -11,7 +11,7 @@ import { handleDownload } from "@/utils/documentFunctions";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
 import Link from "next/link";
 import { IoClose } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import { useUserContext } from "@/context/userContext";
 
 
@@ -107,14 +107,7 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
         setDocuments(initialDocuments);
     }, [initialDocuments]);
 
-    useEffect(() => {
-        if (modalStates.viewModel && selectedDocumentId !== null) {
-            handleGetViewData(selectedDocumentId);
-            // console.log("View Document : ", viewDocument)
-        }
-    }, [modalStates.viewModel, selectedDocumentId]);
-
-    const handleGetViewData = async (id: number) => {
+    const handleGetViewData = useCallback(async (id: number) => {
         try {
             const response = await getWithAuth(`view-document/${id}/${userId}`);
             const data = response.data;
@@ -123,7 +116,14 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
         } catch (error) {
             console.error("Error :", error);
         }
-    };
+    }, [userId, setViewDocument]);
+
+    useEffect(() => {
+        if (modalStates.viewModel && selectedDocumentId !== null) {
+            handleGetViewData(selectedDocumentId);
+            // console.log("View Document : ", viewDocument)
+        }
+    }, [modalStates.viewModel, selectedDocumentId, handleGetViewData]);
 
     const handleCloseModal = (modalName: keyof typeof modalStates) => {
         setModalStates((prev) => ({ ...prev, [modalName]: false }));
@@ -350,25 +350,7 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
                         {viewDocument && (
                             <>
                                 {/* Image Preview */}
-                                {["mp4", "webm", "ogg", "avi", "mov", "mkv", "wmv"].includes(viewDocument.type?.toLowerCase()) ? (
-                      <div className="video-preview" style={{ width: "100%", textAlign: "center" }}>
-                          <video controls style={{ maxWidth: "100%", maxHeight: "500px" }}>
-                              <source src={viewDocument.url} type={`video/${viewDocument.type.toLowerCase() === 'mkv' ? 'webm' : viewDocument.type.toLowerCase()}`} />
-                              Your browser does not support the video tag.
-                          </video>
-                      </div>
-                  ) : 
-                  /* Audio Preview */
-                  ["mp3", "wav", "flac"].includes(viewDocument.type?.toLowerCase()) ? (
-                      <div className="audio-preview" style={{ width: "100%", padding: "20px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-                          <audio controls style={{ width: "100%" }}>
-                              <source src={viewDocument.url} type={`audio/${viewDocument.type.toLowerCase() === 'mp3' ? 'mpeg' : viewDocument.type.toLowerCase()}`} />
-                              Your browser does not support the audio element.
-                          </audio>
-                      </div>
-                  ) : 
-                  /* Image Preview */
-                  ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
+                                {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
                                     <Image
                                         src={viewDocument.url}
                                         alt={viewDocument.name}
@@ -617,7 +599,7 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
                             }}
                             className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
                         >
-                            <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                            <MdCancel fontSize={16} className="me-1" /> Cancel
                         </button>
                     </div>
                 </Modal.Footer>

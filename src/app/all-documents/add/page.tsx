@@ -10,14 +10,15 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { DropdownButton, Dropdown } from "react-bootstrap";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { IoAdd, IoClose, IoSaveOutline, IoTrashOutline } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import { useUserContext } from "@/context/userContext";
-import { formatDateForSQL } from "@/utils/commonFunctions";
+import { formatDateForSQL, getFlattenedSectors, getFlattenedCategories } from "@/utils/commonFunctions";
 import {
   fetchAndMapUserData,
   fetchCategoryData,
   fetchRoleData,
   fetchSectors,
+  fetchSectorsForUser,
 } from "@/utils/dataFetchFunctions";
 import {
   CategoryDropdownItem,
@@ -32,14 +33,14 @@ import styles from "./add-document.module.css";
 
 export default function AllDocTable() {
   const isAuthenticated = useAuth();
-  const { userId } = useUserContext();
+  const { userId, userType } = useUserContext();
 
   // console.log("user id: ", userId);
 
   const [name, setName] = useState<string>("");
   const [document, setDocument] = useState<File | null>(null);
   const [documentPreview, setDocumentPreview] = useState<File | null>(null);
-  const [storage, setStorage] = useState<string>("");
+  // const [storage, setStorage] = useState<string>("");
   const [roleDropDownData, setRoleDropDownData] = useState<RoleDropdownItem[]>(
     []
   );
@@ -54,7 +55,6 @@ export default function AllDocTable() {
 
   const [metaTags, setMetaTags] = useState<string[]>([]);
   const [currentMeta, setCurrentMeta] = useState<string>("");
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
   const [isTimeLimited, setIsTimeLimited] = useState<boolean>(false);
   const [roles, setRoles] = useState<string[]>([]);
@@ -106,35 +106,12 @@ export default function AllDocTable() {
 
 
   useEffect(() => {
-    fetchCategoryData(setCategoryDropDownData);
     fetchRoleData(setRoleDropDownData);
     fetchAndMapUserData(setUserDropDownData);
-    fetchSectors(setSectorDropDownData);
-
-    const fetchTags = async () => {
-      try {
-        const response = await getWithAuth("get-all-meta-tags");
-        if (Array.isArray(response)) {
-          const tags = response.map((t: any) => {
-            if (typeof t === "string") return t;
-            if (t.tag_name) return t.tag_name;
-            if (t.name) return t.name;
-            if (t.meta_tag) return t.meta_tag;
-            if (t.tag) return t.tag;
-            const values = Object.values(t);
-            return values.find(v => typeof v === "string");
-          }).filter(Boolean);
-          setSuggestedTags(tags);
-        } else if (response && Array.isArray(response.data)) {
-          const tags = response.data.map((t: any) => typeof t === "string" ? t : t.tag_name || t.name || t.meta_tag || t.tag).filter(Boolean);
-          setSuggestedTags(tags);
-        }
-      } catch (err) {
-        console.error("Failed to fetch meta tags:", err);
-      }
-    };
-    fetchTags();
-  }, []);
+    if (userId) {
+      fetchSectorsForUser(userId, setSectorDropDownData);
+    }
+  }, [userId]);
 
 
   useEffect(() => {
@@ -147,8 +124,23 @@ export default function AllDocTable() {
     handleGetAttributes(categoryId)
   };
 
-  const handleSectorSelect = (sectorId: string) => {
+  const handleSectorSelect = async (sectorId: string) => {
     setSelectedSectorId(sectorId);
+    setSelectedCategoryId("");
+    setAttributes([]);
+    setFormAttributeData([]);
+
+    if (sectorId) {
+      try {
+        const response = await getWithAuth(`sector-details/${sectorId}`);
+        setCategoryDropDownData(response?.categories || []);
+      } catch (error) {
+        console.error("Failed to load categories for sector:", error);
+        setCategoryDropDownData([]);
+      }
+    } else {
+      setCategoryDropDownData([]);
+    }
   };
 
 
@@ -281,9 +273,9 @@ export default function AllDocTable() {
       validationErrors.category = "Category is required.";
     }
 
-    if (!storage) {
-      validationErrors.storage = "Storage is required.";
-    }
+    // if (!storage) {
+    //   validationErrors.storage = "Storage is required.";
+    // }
 
     if (!document) {
       validationErrors.document = "Document is required.";
@@ -328,7 +320,7 @@ export default function AllDocTable() {
     formData.append("document", document || "");
     formData.append("category", selectedCategoryId);
     formData.append("sector_category", selectedSectorId);
-    formData.append("storage", storage);
+    // formData.append("storage", storage);
     formData.append("description", description);
     formData.append("document_preview", documentPreview || "");
     formData.append("meta_tags", JSON.stringify(metaTags));
@@ -459,6 +451,32 @@ export default function AllDocTable() {
                   {errors.name && <div className={styles.errorMessage}>{errors.name}</div>}
                 </div>
                 <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Sectors</label>
+                  <DropdownButton
+                        id="dropdown-sectors-button"
+                        title={
+                          selectedSectorId
+                            ? sectorDropDownData.find((item) => item.id.toString() === selectedSectorId)?.sector_name
+                            : "Select Sector"
+                        }
+                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                        onSelect={(value) => handleSectorSelect(value || "")}
+                      >
+                        {getFlattenedSectors(sectorDropDownData).map((sector) => (
+                          <Dropdown.Item
+                            key={sector.id}
+                            eventKey={sector.id.toString()}
+                            style={{
+                              fontWeight: sector.level === 0 ? "bold" : "normal",
+                              paddingLeft: `${sector.level * 20 + 10}px`,
+                            }}
+                          >
+                            {sector.sector_name}
+                          </Dropdown.Item>
+                        ))}
+                      </DropdownButton>
+                </div>
+                <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Category</label>
                   <DropdownButton
                         id="dropdown-category-button"
@@ -472,37 +490,23 @@ export default function AllDocTable() {
                         className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
                         onSelect={(value) => handleCategorySelect(value || "")}
                       >
-                        {categoryDropDownData
-                          .filter((category) => category.parent_category === "none") // Get only parent categories
-                          .map((parentCategory) => (
-                            <React.Fragment key={parentCategory.id}>
-                              <Dropdown.Item
-                                eventKey={parentCategory.id.toString()}
-                                style={{ fontWeight: "bold", paddingLeft: "10px" }}
-                              >
-                                {parentCategory.category_name}
-                              </Dropdown.Item>
-                              {categoryDropDownData
-                                .filter(
-                                  (childCategory) =>
-                                    childCategory.parent_category.toString() === parentCategory.id.toString()
-                                )
-                                .map((childCategory) => (
-                                  <Dropdown.Item
-                                    key={childCategory.id}
-                                    eventKey={childCategory.id.toString()}
-                                    style={{ paddingLeft: "20px" }} // Indent child categories
-                                  >
-                                    {childCategory.category_name}
-                                  </Dropdown.Item>
-                                ))}
-                            </React.Fragment>
-                          ))}
+                        {getFlattenedCategories(categoryDropDownData).map((cat) => (
+                          <Dropdown.Item
+                            key={cat.id}
+                            eventKey={cat.id.toString()}
+                            style={{
+                              fontWeight: cat.level === 0 ? "bold" : "normal",
+                              paddingLeft: `${cat.level * 15 + 10}px`,
+                            }}
+                          >
+                            {cat.level > 0 ? "— ".repeat(cat.level) : ""}{cat.category_name}
+                          </Dropdown.Item>
+                        ))}
                       </DropdownButton>
 
                   {errors.category && <div className={styles.errorMessage}>{errors.category}</div>}
                 </div>
-                <div className={styles.formGroup}>
+                {/* <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Storage</label>
                   <DropdownButton
                     id="dropdown-storage-button"
@@ -515,7 +519,7 @@ export default function AllDocTable() {
                     </Dropdown.Item>
                   </DropdownButton>
                   {errors.storage && <div className={styles.errorMessage}>{errors.storage}</div>}
-                </div>
+                </div> */}
               </div>
               {attributes.map((attribute, index) => {
                 const existingValue = formAttributeData.find((item) => item.attribute === attribute)?.value || "";
@@ -556,7 +560,7 @@ export default function AllDocTable() {
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Meta tags</label>
                   <div style={{ width: "100%" }}>
-                    <div className={styles.metaTagRow} style={{ marginBottom: "0.5rem", position: "relative" }}>
+                    <div className={styles.metaTagRow} style={{ marginBottom: "0.5rem" }}>
                       <input
                         type="text"
                         value={currentMeta}
@@ -566,59 +570,11 @@ export default function AllDocTable() {
                         className={styles.metaTagInput}
                       />
                       <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          addMetaTag();
-                        }}
+                        onClick={addMetaTag}
                         className={styles.metaTagAddButton}
                       >
                         <IoAdd />
                       </button>
-
-                      {currentMeta.trim() !== "" && suggestedTags.filter(tag => tag.toLowerCase().includes(currentMeta.trim().toLowerCase()) && !metaTags.includes(tag)).length > 0 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "100%",
-                            left: 0,
-                            right: 0,
-                            backgroundColor: "#fff",
-                            border: "1px solid #ccc",
-                            borderTop: "none",
-                            borderBottomLeftRadius: "4px",
-                            borderBottomRightRadius: "4px",
-                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                            zIndex: 10,
-                            maxHeight: "150px",
-                            overflowY: "auto",
-                          }}
-                        >
-                          {suggestedTags
-                            .filter(tag => tag.toLowerCase().includes(currentMeta.trim().toLowerCase()) && !metaTags.includes(tag))
-                            .map((tag, idx) => (
-                              <div
-                                key={idx}
-                                onClick={() => {
-                                  setMetaTags((prev) => [...prev, tag]);
-                                  setCurrentMeta("");
-                                }}
-                                style={{
-                                  padding: "8px 12px",
-                                  cursor: "pointer",
-                                  fontSize: "14px",
-                                  color: "#333",
-                                  borderBottom: "1px solid #f9f9f9",
-                                  transition: "background-color 0.2s",
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f1f1")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                              >
-                                {tag}
-                              </div>
-                            ))}
-                        </div>
-                      )}
                     </div>
                     <div>
                       {metaTags.map((tag, index) => (
@@ -859,43 +815,6 @@ export default function AllDocTable() {
               </div>
               <div className={styles.formRowTwoCol}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Sectors</label>
-                  <DropdownButton
-                        id="dropdown-sectors-button"
-                        title={
-                          selectedSectorId
-                            ? sectorDropDownData.find((item) => item.id.toString() === selectedSectorId)?.sector_name
-                            : "Select Sector"
-                        }
-                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
-                        onSelect={(value) => handleSectorSelect(value || "")}
-                      >
-                        {sectorDropDownData
-                          .filter((sector) => sector.parent_sector === "none")
-                          .map((parentSector) => (
-                            <React.Fragment key={parentSector.id}>
-                              <Dropdown.Item
-                                eventKey={parentSector.id.toString()}
-                                style={{ fontWeight: "bold", paddingLeft: "10px" }}
-                              >
-                                {parentSector.sector_name}
-                              </Dropdown.Item>
-                              {sectorDropDownData
-                                .filter((sector) => sector.parent_sector === parentSector.id.toString())
-                                .map((childSector) => (
-                                  <Dropdown.Item
-                                    key={childSector.id}
-                                    eventKey={childSector.id.toString()}
-                                    style={{ paddingLeft: "30px" }}
-                                  >
-                                    {childSector.sector_name}
-                                  </Dropdown.Item>
-                                ))}
-                            </React.Fragment>
-                          ))}
-                      </DropdownButton>
-                </div>
-                <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Select Expire Date</label>
                   <div className={styles.datePickerWrapper}>
                     <DatePicker
@@ -975,7 +894,7 @@ export default function AllDocTable() {
               href="/all-documents"
               className={styles.btnCancel}
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+              <MdCancel fontSize={16} className="me-1" /> Cancel
             </Link>
           </div>
         </div>

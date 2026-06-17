@@ -10,11 +10,12 @@ import { DropdownButton, Dropdown } from "react-bootstrap";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { useRouter } from "next/navigation";
 import { IoClose, IoSaveOutline } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import ToastMessage from "@/components/common/Toast";
 import { fetchRoleData, fetchSectors } from "@/utils/dataFetchFunctions";
 import { RoleDropdownItem } from "@/types/types";
 import { SectorDropdownItem } from "@/types/types";
+import { getFlattenedSectors } from "@/utils/commonFunctions";
 import styles from "../add-user/add-user.module.css";
 
 type Params = {
@@ -51,7 +52,7 @@ export default function AllDocTable({ params }: Props) {
   );
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
-  const [selectedSectorId, setSelectedSectorId] = useState<string>("");
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [sectorDropDownData, setSectorDropDownData] = useState<
     SectorDropdownItem[]
   >([]);
@@ -60,7 +61,13 @@ export default function AllDocTable({ params }: Props) {
   const id = params?.id;
 
   const handleSectorSelect = (sectorId: string) => {
-    setSelectedSectorId(sectorId);
+    if (!selectedSectorIds.includes(sectorId)) {
+      setSelectedSectorIds((prev) => [...prev, sectorId]);
+    }
+  };
+
+  const handleRemoveSector = (sectorId: string) => {
+    setSelectedSectorIds((prev) => prev.filter((id) => id !== sectorId));
   };
 
   useEffect(() => {
@@ -77,10 +84,11 @@ export default function AllDocTable({ params }: Props) {
         setMobileNumber(response.user_details.mobile_no?.toString() || "");
         setEmail(response.email || "");
         const roleIds = parseRoles(response.role);
-        setSelectedSectorId(response.user_details.sector);
+        const sectorIds = parseSectors(response.user_details.sector);
+        setSelectedSectorIds(sectorIds);
         setSelectedRoleIds(roleIds);
-      } catch (error) {
-        console.error("Failed to fetch profile data:", error);
+      } catch {
+        console.error("Failed to fetch profile data:");
       }
     };
 
@@ -88,6 +96,27 @@ export default function AllDocTable({ params }: Props) {
       fetchUserDetails();
     }
   }, [id]);
+
+  const parseSectors = (sectorData: any): string[] => {
+    if (typeof sectorData === "string") {
+      try {
+        const parsed = JSON.parse(sectorData);
+        if (Array.isArray(parsed)) {
+          return parsed.map(String);
+        }
+      } catch {
+        const cleanedData = sectorData.replace(/[^0-9,]/g, '');
+        if (cleanedData) {
+          return cleanedData.split(',').filter((id) => id.trim() !== "");
+        }
+      }
+    } else if (typeof sectorData === "number") {
+      return [sectorData.toString()];
+    } else if (Array.isArray(sectorData)) {
+      return sectorData.map(String);
+    }
+    return [];
+  };
 
   const parseRoles = (roleData: any): string[] => {
     if (typeof roleData === "string") {
@@ -136,7 +165,7 @@ export default function AllDocTable({ params }: Props) {
     if (!mobileNumber.trim()) newErrors.mobile_no = "Mobile number is required.";
     if (!email.trim()) newErrors.email = "Email is required.";
     if (selectedRoleIds.length === 0) newErrors.role = "Role is required.";
-    if (!selectedSectorId) newErrors.sector = "Sector is required.";
+    if (selectedSectorIds.length === 0) newErrors.sector = "Sector is required.";
     return newErrors;
   };
   const handleSubmit = async () => {
@@ -153,7 +182,7 @@ export default function AllDocTable({ params }: Props) {
     formData.append("mobile_no", mobileNumber);
     formData.append("email", email);
     formData.append("role", JSON.stringify(selectedRoleIds));
-    formData.append("sector", selectedSectorId);
+    formData.append("sector", JSON.stringify(selectedSectorIds));
 
     try {
       const response = await postWithAuth(`user-details/${id}`, formData);
@@ -277,29 +306,20 @@ export default function AllDocTable({ params }: Props) {
                   <DropdownButton
                     id="dropdown-category-button"
                     title={
-                      selectedSectorId
-                        ? sectorDropDownData.find(
-                          (item) => item.id.toString() === selectedSectorId
-                        )?.sector_name
+                      selectedSectorIds.length > 0
+                        ? `${selectedSectorIds.length} Sectors Selected`
                         : "Select Sector"
                     }
                     className="custom-dropdown-text-start text-start w-100"
                     onSelect={(value) => handleSectorSelect(value || "")}
                   >
-                    {sectorDropDownData.map((sector) => (
+                    {getFlattenedSectors(sectorDropDownData).map((sector) => (
                       <Dropdown.Item
                         key={sector.id}
                         eventKey={sector.id.toString()}
-                        data-indent={sector.parent_sector === "none" ? undefined : "child"}
                         style={{
-                          fontWeight:
-                            sector.parent_sector === "none"
-                              ? "bold"
-                              : "normal",
-                          marginLeft:
-                            sector.parent_sector === "none"
-                              ? "0"
-                              : "20px",
+                          fontWeight: sector.level === 0 ? "bold" : "normal",
+                          paddingLeft: `${sector.level * 20 + 10}px`,
                         }}
                       >
                         {sector.sector_name}
@@ -307,6 +327,26 @@ export default function AllDocTable({ params }: Props) {
                     ))}
                   </DropdownButton>
                   {errors.sector && <div className={styles.errorText}>{errors.sector}</div>}
+                  <div className="mt-1">
+                    {selectedSectorIds.map((sectorId) => {
+                      const sector = sectorDropDownData.find(
+                        (item) => item.id.toString() === sectorId
+                      );
+                      return sector ? (
+                        <span
+                          key={sectorId}
+                          className={`${styles.badgeTag} d-inline-flex align-items-center`}
+                        >
+                          {sector.sector_name}
+                          <IoClose
+                            className="ms-2"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handleRemoveSector(sectorId)}
+                          />
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -323,7 +363,7 @@ export default function AllDocTable({ params }: Props) {
                 onClick={() => router.push("/users")}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> Cancel
+                <MdCancel fontSize={16} /> Cancel
               </button>
             </div>
           </div>

@@ -423,6 +423,19 @@ export const fetchSectors = async (
     }
 };
 
+export const fetchSectorsForUser = async (
+    userId: string | null,
+    setSectors: React.Dispatch<React.SetStateAction<any>>
+) => {
+    try {
+        if (!userId) return;
+        const response = await getWithAuth(`user-sectors/${userId}`);
+        setSectors(response || []);
+    } catch (error) {
+        console.error("Failed to fetch user sectors data:", error);
+    }
+};
+
 
 export const fetchFtpAccounts = async (
     setFtpAccountData: React.Dispatch<React.SetStateAction<any>>

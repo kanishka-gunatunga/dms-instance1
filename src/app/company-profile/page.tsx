@@ -9,7 +9,7 @@ import useAuth from "@/hooks/useAuth";
 import React, { useState, useRef, useEffect } from "react";
 import { Tabs, Tab, Card, Dropdown, DropdownButton } from "react-bootstrap";
 import { IoImageOutline, IoSaveOutline } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import { postWithAuth,getWithAuth } from "@/utils/apiClient";
 import ToastMessage from "@/components/common/Toast";
 import styles from "./company-profile.module.css";
@@ -323,7 +323,7 @@ export default function AllDocTable() {
                       <IoSaveOutline fontSize={16} /> Save
                     </button>
                     <button onClick={handleCancel} className={styles.btnCancel}>
-                      <MdOutlineCancel fontSize={16} /> Cancel
+                      <MdCancel fontSize={16} /> Cancel
                     </button>
                   </div>
                 </Tab>
@@ -394,7 +394,7 @@ export default function AllDocTable() {
                       <IoSaveOutline fontSize={16} /> Save
                     </button>
                     <button onClick={handleStorageCancel} className={styles.btnCancel}>
-                      <MdOutlineCancel fontSize={16} /> Cancel
+                      <MdCancel fontSize={16} /> Cancel
                     </button>
                   </div>
                 </Tab>

@@ -17,8 +17,9 @@ import { useCompanyProfile } from "@/context/userCompanyProfile";
 import LoadingSpinner from "./common/LoadingSpinner";
 import { TbUsers } from "react-icons/tb";
 import { IoMdTrash } from "react-icons/io";
-import { GiBrain } from "react-icons/gi";
+import {GiBrain} from "react-icons/gi";
 import {AiOutlineMenu} from "react-icons/ai";
+import Footer from "./common/Footer";
 
 
 const DashboardLayoutSuperAdmin: React.FC<{ children: React.ReactNode }> = ({
@@ -566,6 +567,7 @@ const DashboardLayoutSuperAdmin: React.FC<{ children: React.ReactNode }> = ({
 
         <Container fluid style={{backgroundColor: "#F0F0FF", padding: "20px"}}>{children}</Container>
       </div>
+      <Footer />
     </div>
   );
 };

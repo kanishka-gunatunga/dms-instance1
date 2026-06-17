@@ -17,7 +17,7 @@ import {
   Pagination,
   Table,
 } from "react-bootstrap";
-import { CategoryDropdownItem, UserDropdownItem, RoleDropdownItem } from "@/types/types";
+import { CategoryDropdownItem } from "@/types/types";
 import { AiOutlineDelete } from "react-icons/ai";
 import { FaPlus } from "react-icons/fa6";
 import ToastMessage from "@/components/common/Toast";
@@ -27,17 +27,16 @@ import {
   MdOutlineKeyboardDoubleArrowRight,
 } from "react-icons/md";
 import { IoAdd, IoCheckmark, IoClose, IoFolder, IoSaveOutline, IoTrashOutline } from "react-icons/io5";
-import { MdOutlineCancel } from "react-icons/md";
+import { MdCancel } from "react-icons/md";
 import {
   fetchCategoryChildrenData,
   fetchCategoryData,
-  fetchRoleData,
-  fetchAndMapUserData,
 } from "@/utils/dataFetchFunctions";
 import { deleteWithAuth, getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
 import { IoMdCloudDownload } from "react-icons/io";
+import { getFlattenedCategories } from "@/utils/commonFunctions";
 import styles from "./document-categories.module.css";
 
 interface Category {
@@ -54,6 +53,53 @@ const initialState = {
   category_name: "",
   description: "",
   template: ""
+};
+
+interface FlattenedCategory extends Category {
+  depth: number;
+}
+
+const flattenCategories = (
+  categories: Category[],
+  depth = 0,
+  result: FlattenedCategory[] = [],
+  parentCollapsed = false,
+  collapsedMap: Record<number, boolean> = {}
+): FlattenedCategory[] => {
+  for (const cat of categories) {
+    if (!parentCollapsed) {
+      result.push({ ...cat, depth });
+    }
+    if (cat.children && cat.children.length > 0) {
+      const isExpanded = !!collapsedMap[cat.id];
+      flattenCategories(cat.children, depth + 1, result, parentCollapsed || !isExpanded, collapsedMap);
+    }
+  }
+  return result;
+};
+
+const getDescendantIds = (catId: number, categories: Category[]): number[] => {
+  const ids: number[] = [];
+  const find = (list: Category[]) => {
+    for (const cat of list) {
+      if (cat.id === catId) {
+        const collect = (node: Category) => {
+          if (node.children) {
+            for (const child of node.children) {
+              ids.push(child.id);
+              collect(child);
+            }
+          }
+        };
+        collect(cat);
+        break;
+      } else if (cat.children) {
+        find(cat.children);
+      }
+    }
+  };
+  find(categories);
+  return ids;
 };
 
 export default function AllDocTable() {
@@ -82,12 +128,6 @@ export default function AllDocTable() {
   const [excelGenerated, setExcelGenerated] = useState(false);
   const [excelGeneratedLink, setExcelGeneratedLink] = useState("");
   const [errors, setErrors] = useState<any>({});
-  const [userDropDownData, setUserDropDownData] = useState<UserDropdownItem[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [users, setUsers] = useState<string[]>([]);
-  const [roleDropDownData, setRoleDropDownData] = useState<RoleDropdownItem[]>([]);
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
-  const [roles, setRoles] = useState<string[]>([]);
 
   const [modalStates, setModalStates] = useState({
     addCategory: false,
@@ -99,8 +139,6 @@ export default function AllDocTable() {
   useEffect(() => {
     fetchCategoryChildrenData(setDummyData);
     fetchCategoryData(setCategoryDropDownData);
-    fetchAndMapUserData(setUserDropDownData);
-    fetchRoleData(setRoleDropDownData);
   }, []);
 
   useEffect(() => {
@@ -120,112 +158,6 @@ export default function AllDocTable() {
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
   };
-
-  const resetSigningAssignment = () => {
-    setSelectedUserIds([]);
-    setUsers([]);
-    setSelectedRoleIds([]);
-    setRoles([]);
-  };
-
-  const handleRoleSelect = (roleId: string) => {
-    const selectedRole = roleDropDownData.find((role) => role.id.toString() === roleId);
-    if (selectedRole && !selectedRoleIds.includes(roleId)) {
-      setSelectedRoleIds([...selectedRoleIds, roleId]);
-      setRoles([...roles, selectedRole.role_name]);
-    }
-  };
-
-  const handleRemoveRole = (roleName: string) => {
-    const roleToRemove = roleDropDownData.find((role) => role.role_name === roleName);
-    if (roleToRemove) {
-      setSelectedRoleIds(selectedRoleIds.filter((id) => id !== roleToRemove.id.toString()));
-      setRoles(roles.filter((r) => r !== roleName));
-    }
-  };
-
-  const handleUserSelect = (userId: string) => {
-    const selectedUser = userDropDownData.find((user) => user.id.toString() === userId);
-    if (selectedUser && !selectedUserIds.includes(userId)) {
-      setSelectedUserIds([...selectedUserIds, userId]);
-      setUsers([...users, selectedUser.user_name]);
-    }
-  };
-
-  const handleUserRole = (userName: string) => {
-    const userToRemove = userDropDownData.find((user) => user.user_name === userName);
-    if (userToRemove) {
-      setSelectedUserIds(selectedUserIds.filter((id) => id !== userToRemove.id.toString()));
-      setUsers(users.filter((r) => r !== userName));
-    }
-  };
-
-  const renderSigningAssignmentFields = (idSuffix: string) => (
-    <>
-      <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-        <label className={styles.formLabel}>Assign roles</label>
-        <div className="d-flex flex-column position-relative">
-          <DropdownButton
-            id={`dropdown-roles-button-${idSuffix}`}
-            title={roles.length > 0 ? roles.join(", ") : "Select Roles"}
-            className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
-            onSelect={(value) => {
-              if (value) handleRoleSelect(value);
-            }}
-          >
-            {roleDropDownData.length > 0 ? (
-              roleDropDownData.map((role) => (
-                <Dropdown.Item key={role.id} eventKey={role.id.toString()}>
-                  {role.role_name}
-                </Dropdown.Item>
-              ))
-            ) : (
-              <Dropdown.Item disabled>No Roles available</Dropdown.Item>
-            )}
-          </DropdownButton>
-          <div className="mt-1">
-            {roles.map((role, index) => (
-              <span key={index} className={styles.badge}>
-                {role}
-                <IoClose className={styles.badgeClose} onClick={() => handleRemoveRole(role)} />
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
-        <label className={styles.formLabel}>Assign Users</label>
-        <div className="d-flex flex-column position-relative">
-          <DropdownButton
-            id={`dropdown-users-button-${idSuffix}`}
-            title={users.length > 0 ? users.join(", ") : "Select Users"}
-            className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
-            onSelect={(value) => {
-              if (value) handleUserSelect(value);
-            }}
-          >
-            {userDropDownData.length > 0 ? (
-              userDropDownData.map((user) => (
-                <Dropdown.Item key={user.id} eventKey={user.id.toString()}>
-                  {user.user_name}
-                </Dropdown.Item>
-              ))
-            ) : (
-              <Dropdown.Item disabled>No users available</Dropdown.Item>
-            )}
-          </DropdownButton>
-          <div className="mt-1">
-            {users.map((user, index) => (
-              <span key={index} className={styles.badge}>
-                {user}
-                <IoClose className={styles.badgeClose} onClick={() => handleUserRole(user)} />
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
-  );
 
   const handleEditCategorySelect = (value: string) => {
     if (value === "none") {
@@ -283,6 +215,8 @@ export default function AllDocTable() {
     currentPage * itemsPerPage
   );
 
+  const visibleRows = flattenCategories(paginatedData, 0, [], false, collapsedRows);
+
   const addAttribute = () => {
     if (currentAttribue.trim() !== "" && !attributeData.includes(currentAttribue.trim())) {
       setattributeData((prev) => [...prev, currentAttribue.trim()]);
@@ -330,9 +264,7 @@ export default function AllDocTable() {
     formData.append("parent_category", selectedCategoryId);
     formData.append("category_name", category_name || "");
     formData.append("description", description);
-    formData.append("attribute_data", JSON.stringify(attributeData));
-    formData.append("signing_roles", JSON.stringify(selectedRoleIds));
-    formData.append("signing_users", JSON.stringify(selectedUserIds));
+    formData.append("attribute_data", JSON.stringify(attributeData))
 
     try {
 
@@ -364,7 +296,6 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
-        resetSigningAssignment();
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add category!");
@@ -407,9 +338,11 @@ export default function AllDocTable() {
       formData.append("category_name", category_name || "");
       formData.append("description", description);
 
-      formData.append("attribute_data", JSON.stringify(attributeData));
-      formData.append("signing_roles", JSON.stringify(selectedRoleIds));
-      formData.append("signing_users", JSON.stringify(selectedUserIds));
+      formData.append("attribute_data", JSON.stringify(attributeData))
+
+      // formData.forEach((value, key) => {
+      //   console.log(`${key}: ${value}`);
+      // });
 
       setErrors({});
       const response = await postWithAuth(`add-category`, formData);
@@ -435,7 +368,6 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
-        resetSigningAssignment();
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add child category!");
@@ -489,41 +421,6 @@ export default function AllDocTable() {
 
         setattributeData(parsedAttributes);
         setEditData(response);
-
-        if (response.signing_roles) {
-          try {
-            const roleIds = typeof response.signing_roles === "string"
-              ? JSON.parse(response.signing_roles)
-              : response.signing_roles;
-            if (Array.isArray(roleIds)) {
-              setSelectedRoleIds(roleIds);
-              const mappedRoles = roleIds.map((id) =>
-                roleDropDownData.find((r) => r.id.toString() === id.toString())?.role_name
-              ).filter(Boolean) as string[];
-              setRoles(mappedRoles);
-            }
-          } catch (e) {
-            console.error("Failed to parse signing_roles:", e);
-          }
-        }
-
-        if (response.signing_users) {
-          try {
-            const userIds = typeof response.signing_users === "string"
-              ? JSON.parse(response.signing_users)
-              : response.signing_users;
-            if (Array.isArray(userIds)) {
-              setSelectedUserIds(userIds);
-              const mappedUsers = userIds.map((id) =>
-                userDropDownData.find((u) => u.id.toString() === id.toString())?.user_name
-              ).filter(Boolean) as string[];
-              setUsers(mappedUsers);
-            }
-          } catch (e) {
-            console.error("Failed to parse signing_users:", e);
-          }
-        }
-
         console.log("category data::: ", response);
       }
     } catch (error) {
@@ -549,8 +446,6 @@ export default function AllDocTable() {
       formData.append("category_name", editData.category_name || "");
       formData.append("description", editData.description);
       formData.append("attribute_data", JSON.stringify(attributeData));
-      formData.append("signing_roles", JSON.stringify(selectedRoleIds));
-      formData.append("signing_users", JSON.stringify(selectedUserIds));
 
       formData.forEach((value, key) => {
         console.log(`${key}: ${value}`);
@@ -566,7 +461,6 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
-        resetSigningAssignment();
         setEditData(initialState)
 
         setToastType("success");
@@ -585,7 +479,6 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
-        resetSigningAssignment();
         setEditData(initialState)
 
         setToastType("error");
@@ -643,67 +536,72 @@ export default function AllDocTable() {
     }
   };
 
+  const descendants = getDescendantIds(selectedItemId ? selectedItemId : 0, dummyData);
+  const excludedIds = [selectedItemId ? selectedItemId : 0, ...descendants];
+  const editDropdownItems = getFlattenedCategories(categoryDropDownData).filter(
+    (item) => !excludedIds.includes(item.id)
+  );
+
   return (
     <>
       <DashboardLayout>
-        <div className="d-flex flex-column flex-lg-row justify-content-lg-between align-items-lg-center pt-2">
-          <Heading text="Document Categories" color="#444" />
-          {hasPermission(
-            permissions,
-            "Document Categories",
-            "Manage Document Category"
-          ) && (
+        <div className={styles.pageWrapper}>
+          <div className={styles.pageHeader}>
+            <Heading text="Document Categories" color="#444" />
+            {hasPermission(
+              permissions,
+              "Document Categories",
+              "Manage Document Category"
+            ) && (
               <div className="d-flex mt-2 mt-lg-0">
                 <button
                   onClick={() => handleOpenModal("addCategory")}
-                  className="addButton bg-white text-dark border border-success rounded px-3 py-1"
+                  className={styles.btnAdd}
                 >
                   <FaPlus className="me-1" /> Add Document Category
                 </button>
               </div>
             )}
-        </div>
-        <div className="d-flex flex-column bg-white p-2 p-lg-3 rounded mt-3">
-          <div>
-            <div
-              style={{ maxHeight: "380px", overflowY: "auto" }}
-              className="custom-scroll"
-            >
-              <Table responsive>
-                <thead className="sticky-header">
-                  <tr>
-                    <th className="text-center" style={{ width: "10%" }}></th>
-                    <th className="text-start" style={{ width: "20%" }}>
-                      Action
-                    </th>
-                    <th className="text-start" style={{ width: "70%" }}>
-                      Name
-                    </th>
-                    <th className="text-start" style={{ width: "70%" }}>
-                      Template
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedData.length > 0 ? (
-                    paginatedData.map((item) => (
-                      <React.Fragment key={item.id}>
-                        <tr className="border-bottom" >
-                          <td className="border-0">
-                            <button
-                              onClick={() => toggleCollapse(item.id)}
-                              className="custom-icon-button text-secondary"
-                            >
-                              {collapsedRows[item.id] ? (
-                                <MdOutlineKeyboardDoubleArrowDown
-                                  fontSize={20}
-                                />
-                              ) : (
-                                <MdOutlineKeyboardDoubleArrowRight
-                                  fontSize={20}
-                                />
-                              )}
-                            </button>
+          </div>
+          <div className={`d-flex flex-column ${styles.card}`}>
+            <div>
+              <div className={`${styles.tableWrapper} custom-scroll`}>
+                <Table responsive>
+                  <thead className="sticky-header">
+                    <tr>
+                      <th className="text-center" style={{ width: "5%" }}></th>
+                      <th className="text-start" style={{ width: "25%" }}>
+                        Action
+                      </th>
+                      <th className="text-start" style={{ width: "50%" }}>
+                        Name
+                      </th>
+                      <th className="text-start" style={{ width: "20%" }}>
+                        Template
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.length > 0 ? (
+                      visibleRows.map((item) => (
+                        <tr key={item.id} className="border-bottom">
+                          <td className="border-0 text-center">
+                            {item.children && item.children.length > 0 ? (
+                              <button
+                                onClick={() => toggleCollapse(item.id)}
+                                className={styles.iconBtn}
+                              >
+                                {collapsedRows[item.id] ? (
+                                  <MdOutlineKeyboardDoubleArrowDown
+                                    fontSize={20}
+                                  />
+                                ) : (
+                                  <MdOutlineKeyboardDoubleArrowRight
+                                    fontSize={20}
+                                  />
+                                )}
+                              </button>
+                            ) : null}
                           </td>
                           <td className="border-0">
                             <div className="d-flex flex-row">
@@ -717,7 +615,7 @@ export default function AllDocTable() {
                                       handleOpenModal("editModel");
                                       setSelectedItemId(item.id);
                                     }}
-                                    className="custom-icon-button button-success px-3 py-1 rounded me-2"
+                                    className={`${styles.btnEdit} me-2`}
                                   >
                                     <MdOutlineEdit fontSize={16} className="me-1" />{" "}
                                     Edit
@@ -731,10 +629,27 @@ export default function AllDocTable() {
                               ) && (
                                   <button
                                     onClick={() => {
+                                      handleOpenModal("addChildCategory");
+                                      setSelectedCategoryId(item.id.toString());
+                                    }}
+                                    className={`${styles.btnEdit} me-2`}
+                                    style={{ backgroundColor: "#198754", borderColor: "#198754", color: "#fff" }}
+                                  >
+                                    <FaPlus className="me-1" /> Add Sub
+                                  </button>
+                                )}
+
+                              {hasPermission(
+                                permissions,
+                                "Document Categories",
+                                "Manage Document Category"
+                              ) && (
+                                  <button
+                                    onClick={() => {
                                       handleOpenModal("deleteModel");
                                       setSelectedItemId(item.id);
                                     }}
-                                    className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+                                    className={styles.btnDanger}
                                   >
                                     <AiOutlineDelete
                                       fontSize={16}
@@ -746,185 +661,44 @@ export default function AllDocTable() {
                             </div>
                           </td>
                           <td className="border-0">
-                            <div className="d-flex flex-row align-items-center">
-                              {item.category_name}
-                              <span className={`ms-2 mb-0 badge ${item.status === 'active' ? 'active-badge' : 'inactive-badge'}`}>
+                            <div className="d-flex flex-row align-items-center" style={{ paddingLeft: `${item.depth * 24}px` }}>
+                              <IoFolder className="me-2 text-primary" style={{ minWidth: "16px" }} />
+                              <span>{item.category_name}</span>
+                              <span className={`ms-2 mb-0 ${item.status === 'active' ? styles.badgeActive : styles.badgeInactive}`}>
                                 {item.status}
                               </span>
                             </div>
                           </td>
-
-                          {/* <td className="border-0">{item.category_name} <span>{item.status}</span></td> */}
                           <td className="border-0">
                             <div className="col-12 col-lg-12 d-flex flex-column pe-2">
                               {item.status === 'active' && (
-                                <a href={item.template} download style={{ color: "#333" }} className="d-flex flex-row align-items-center ms-0">
-                                  <div className="d-flex flex-row align-items-center custom-icon-button button-success px-3 py-1 rounded">
-                                    <IoMdCloudDownload />
-                                    <p className="ms-3 mb-0">Download Template</p>
-                                  </div>
+                                <a href={item.template} download className={styles.btnDownload}>
+                                  <IoMdCloudDownload />
+                                  <span>Download Template</span>
                                 </a>
                               )}
                             </div>
                           </td>
-
                         </tr>
-
-                        {collapsedRows[item.id] && (
-                          <tr>
-                            <td
-                              colSpan={3}
-                              style={{
-                                paddingLeft: "10%",
-                                paddingRight: "10%",
-                              }}
-                            >
-                              <table className="table rounded">
-                                <thead>
-                                  <tr className="border-bottom" >
-                                    <td colSpan={2}>
-                                      <div className="d-flex flex-column flex-lg-row justify-content-lg-between align-items-lg-center">
-                                        <div className="col-lg-auto pe-lg-3 mb-2 mb-lg-0">
-                                          <Paragraph
-                                            color="#333"
-                                            text="Child Categories"
-                                          />
-                                        </div>
-                                        <div className="col-lg-7 text-end">
-                                          {hasPermission(
-                                            permissions,
-                                            "Document Categories",
-                                            "Manage Document Category"
-                                          ) && (
-                                              <button
-                                                onClick={() => {
-                                                  handleOpenModal(
-                                                    "addChildCategory"
-                                                  );
-                                                  setSelectedParentId(item.id);
-                                                }}
-                                                className="addButton bg-success text-white border border-success rounded px-3 py-1"
-                                              >
-                                                <FaPlus className="me-1" /> Add Child Category
-                                              </button>
-                                            )}
-                                        </div>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <th className="text-start">Actions</th>
-                                    <th className="text-start">Name</th>
-                                    <th className="text-start">
-                                      Template
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {item.children && item.children.length > 0 ? (
-                                    item.children.map((child) => (
-                                      <tr key={child.id} className="border-bottom" >
-                                        <td className=" border-0">
-                                          <div className="d-flex flex-row">
-                                            {hasPermission(
-                                              permissions,
-                                              "Document Categories",
-                                              "Manage Document Category"
-                                            ) && (
-                                                <button
-                                                  onClick={() => {
-                                                    handleOpenModal("editModel");
-                                                    setSelectedItemId(child.id);
-                                                  }}
-                                                  className="custom-icon-button button-success px-3 py-1 rounded me-2"
-                                                >
-                                                  <MdOutlineEdit
-                                                    fontSize={16}
-                                                    className="me-1"
-                                                  />{" "}
-                                                  Edit
-                                                </button>
-                                              )}
-                                            {hasPermission(
-                                              permissions,
-                                              "Document Categories",
-                                              "Manage Document Category"
-                                            ) && (
-                                                <button
-                                                  onClick={() => {
-                                                    handleOpenModal("deleteModel");
-                                                    setSelectedItemId(child.id);
-                                                  }}
-                                                  className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
-                                                >
-                                                  <AiOutlineDelete
-                                                    fontSize={16}
-                                                    className="me-1"
-                                                  />{" "}
-                                                  Disable
-                                                </button>
-                                              )}
-                                          </div>
-                                        </td>
-                                        {/* <td className=" border-0">{child.category_name}</td> */}
-                                        <td className="border-0">
-                                          {child.category_name}
-                                          <span className={`ms-2 mb-0 badge ${item.status === 'active' ? 'active-badge' : 'inactive-badge'}`}>
-                                            {item.status}
-                                          </span>
-                                        </td>
-
-                                        <td className=" border-0">
-                                          <div className="col-12 col-lg-12 d-flex flex-column pe-2">
-                                            <a href={child.template} download style={{ color: "#333" }} className="d-flex flex-row align-items-center ms-0 ">
-                                              <div className="d-flex flex-row align-items-center custom-icon-button button-success px-3 py-1 rounded ">
-                                                <IoMdCloudDownload />
-                                                <p className="ms-3 mb-0">Download Template</p>
-                                              </div>
-                                            </a>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td
-                                        colSpan={2}
-                                        className="text-center py-3"
-                                      >
-                                        No child categories available.
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="text-start w-100 py-3">
-                        <Paragraph text="No data available" color="#333" />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className={`text-start w-100 ${styles.noData}`}>
+                          <Paragraph text="No data available" color="#717182" />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
               </Table>
             </div>
 
-            <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className={`d-flex flex-column flex-lg-row ${styles.paginationFooter}`}>
               <div className="d-flex justify-content-between align-items-center">
-                <p className="pagintionText mb-0 me-2">Items per page:</p>
+                <p className={`${styles.paginationLabel} mb-0`}>Items per page:</p>
                 <Form.Select
                   onChange={handleItemsPerPageChange}
                   value={itemsPerPage}
-                  style={{
-                    width: "100px",
-                    padding: "5px 10px !important",
-                    fontSize: "12px",
-                  }}
+                  style={{ width: "100px" }}
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -932,7 +706,7 @@ export default function AllDocTable() {
                 </Form.Select>
               </div>
               <div className="d-flex flex-row align-items-center px-lg-5">
-                <div className="pagination-info" style={{ fontSize: "14px" }}>
+                <div className={styles.paginationInfo}>
                   {startIndex} – {endIndex} of {totalItems}
                 </div>
 
@@ -949,6 +723,7 @@ export default function AllDocTable() {
               </div>
             </div>
           </div>
+        </div>
         </div>
         <ToastMessage
           message={toastMessage}
@@ -968,16 +743,15 @@ export default function AllDocTable() {
           setcurrentAttribue('')
           setCategoryName("")
           setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+          setDescription("")
+          setEditData(initialState)
         }}
       >
         <Modal.Header>
           <div className="d-flex w-100 justify-content-end">
-            <div className="col-11 d-flex flex-row">
+            <div className={`col-11 d-flex flex-row align-items-center ${styles.modalHeader}`}>
               <IoFolder fontSize={20} className="me-2" />
-              <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
+              <p className={styles.modalTitle}>
                 Add New Category
               </p>
             </div>
@@ -991,21 +765,17 @@ export default function AllDocTable() {
                   setcurrentAttribue('')
                   setCategoryName("")
                   setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                  setDescription("")
+                  setEditData(initialState)
                 }}
               />
             </div>
           </div>
         </Modal.Header>
         <Modal.Body className="py-3">
-          <div
-            className="d-flex flex-column custom-scroll mb-3"
-            style={{ maxHeight: "450px", overflowY: "auto" }}
-          >
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+          <div className={`d-flex flex-column custom-scroll mb-3 ${styles.modalBody}`}>
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Parent Category
               </p>
               <DropdownButton
@@ -1030,132 +800,77 @@ export default function AllDocTable() {
                 >
                   None
                 </Dropdown.Item>
-                {categoryDropDownData
-                  .filter((category) => category.parent_category === "none")
-                  .map((category) => (
-                    <Dropdown.Item
-                      key={category.id}
-                      eventKey={category.id.toString()}
-                      style={{
-                        fontWeight: "bold",
-                        marginLeft: "0px",
-                      }}
-                    >
-                      {category.category_name}
-                    </Dropdown.Item>
-                  ))}
+                {getFlattenedCategories(categoryDropDownData).map((category) => (
+                  <Dropdown.Item
+                    key={category.id}
+                    eventKey={category.id.toString()}
+                    style={{
+                      marginLeft: "0px",
+                      paddingLeft: `${category.level * 15 + 12}px`,
+                    }}
+                  >
+                    {category.level > 0 ? "— ".repeat(category.level) : ""}{category.category_name}
+                  </Dropdown.Item>
+                ))}
               </DropdownButton>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Category Name
               </p>
               <div className="input-group d-flex flex-column w-100">
                 <input
                   type="text"
-                  className="form-control w-100"
+                  className={`form-control w-100 ${styles.formInput}`}
                   value={category_name}
                   onChange={(e) => setCategoryName(e.target.value)}
                 />
-                {errors.category_name && <div style={{ color: "red", fontSize: "13px" }}>{errors.category_name}</div>}
+                {errors.category_name && <div className={styles.formError}>{errors.category_name}</div>}
               </div>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2 pe-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Description
               </p>
               <textarea
-                className="form-control"
+                className={`form-control ${styles.formTextarea}`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            {renderSigningAssignmentFields("add")}
-            <div className="col-12 col-lg-12 d-flex flex-column">
-              <p
-                className="mb-1 text-start w-100"
-                style={{ fontSize: "14px" }}
-              >
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Attributes
               </p>
               <div className="col-12">
-                <div
-                  style={{ marginBottom: "10px" }}
-                  className="w-100 d-flex metaBorder"
-                >
+                <div className={styles.attrInputGroup}>
                   <input
                     type="text"
                     value={currentAttribue}
                     onChange={(e) => setcurrentAttribue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Enter a attribute"
-                    style={{
-                      flex: 1,
-                      padding: "6px 10px",
-                      border: "1px solid #ccc",
-                      borderTopRightRadius: "0px !important",
-                      borderBottomRightRadius: "0px !important",
-                      backgroundColor: 'transparent',
-                      color: "#333",
-                    }}
                   />
                   <button
                     onClick={addAttribute}
-                    className="successButton"
-                    style={{
-                      padding: "10px",
-                      backgroundColor: "#4CAF50",
-                      color: "white",
-                      border: "1px solid #4CAF50",
-                      borderLeft: "none",
-                      borderTopRightRadius: "4px",
-                      borderBottomRightRadius: "4px",
-                      cursor: "pointer",
-                    }}
+                    className={styles.attrAddBtn}
                   >
                     <IoAdd />
                   </button>
                 </div>
                 <div>
                   {attributeData.map((tag, index) => (
-                    <div
-                      key={index}
-                      className="metaBorder"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "5px",
-                      }}
-                    >
+                    <div key={index} className={styles.attrItem}>
                       <input
                         type="text"
                         value={tag}
                         onChange={(e) =>
                           updateAttribute(index, e.target.value)
                         }
-                        style={{
-                          flex: 1,
-                          borderRadius: "0px",
-                          backgroundColor: 'transparent',
-                          border: "1px solid #ccc",
-                          color: "#333",
-                          padding: "6px 10px",
-                        }}
                       />
                       <button
                         onClick={() => removeAttribute(index)}
-                        className="dangerButton"
-                        style={{
-                          padding: "10px !important",
-                          backgroundColor: "#f44336",
-                          color: "white",
-                          border: "1px solid #4CAF50",
-                          borderLeft: "none",
-                          borderTopRightRadius: "4px",
-                          borderBottomRightRadius: "4px",
-                          cursor: "pointer",
-                          height: "34px"
-                        }}
+                        className={styles.attrRemoveBtn}
                       >
                         <IoTrashOutline />
                       </button>
@@ -1166,12 +881,10 @@ export default function AllDocTable() {
             </div>
             {
               excelGenerated && (
-                <div className="col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2">
-                  <a href={excelGeneratedLink} download style={{ color: "#333" }} className="d-flex flex-row align-items-center ms-0 ">
-                    <div className="d-flex flex-row align-items-center custom-icon-button button-success px-3 py-1 rounded ">
-                      <IoMdCloudDownload />
-                      <p className="ms-3 mb-0">Download Template</p>
-                    </div>
+                <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2 ${styles.formGroup}`}>
+                  <a href={excelGeneratedLink} download className={styles.btnDownload}>
+                    <IoMdCloudDownload />
+                    <p className="ms-3 mb-0">Download Template</p>
                   </a>
                 </div>
               )
@@ -1179,10 +892,10 @@ export default function AllDocTable() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <div className="d-flex flex-row">
+          <div className={styles.modalFooter}>
             <button
               onClick={() => handleAddCategory()}
-              className="custom-icon-button button-success px-3 py-1 rounded me-2"
+              className={styles.btnSave}
             >
               <IoSaveOutline fontSize={16} className="me-1" /> Save
             </button>
@@ -1193,13 +906,12 @@ export default function AllDocTable() {
                 setcurrentAttribue('')
                 setCategoryName("")
                 setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                setDescription("")
+                setEditData(initialState)
               }}
-              className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+              className={styles.btnCancel}
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+              <MdCancel fontSize={16} className="me-1" /> Cancel
             </button>
           </div>
         </Modal.Footer>
@@ -1215,16 +927,15 @@ export default function AllDocTable() {
           setcurrentAttribue('')
           setCategoryName("")
           setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+          setDescription("")
+          setEditData(initialState)
         }}
       >
         <Modal.Header>
           <div className="d-flex w-100 justify-content-end">
-            <div className="col-11 d-flex flex-row">
+            <div className={`col-11 d-flex flex-row align-items-center ${styles.modalHeader}`}>
               <IoFolder fontSize={20} className="me-2" />
-              <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
+              <p className={styles.modalTitle}>
                 Add New Category
               </p>
             </div>
@@ -1238,21 +949,17 @@ export default function AllDocTable() {
                   setcurrentAttribue('')
                   setCategoryName("")
                   setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                  setDescription("")
+                  setEditData(initialState)
                 }}
               />
             </div>
           </div>
         </Modal.Header>
         <Modal.Body className="py-3">
-          <div
-            className="d-flex flex-column custom-scroll mb-3"
-            style={{ maxHeight: "450px", overflowY: "auto" }}
-          >
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+          <div className={`d-flex flex-column custom-scroll mb-3 ${styles.modalBody}`}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Parent Category
               </p>
               <DropdownButton
@@ -1279,132 +986,77 @@ export default function AllDocTable() {
                 >
                   None
                 </Dropdown.Item>
-                {categoryDropDownData
-                  .filter((category) => category.parent_category === "none")
-                  .map((category) => (
-                    <Dropdown.Item
-                      key={category.id}
-                      eventKey={category.id.toString()}
-                      style={{
-                        fontWeight: "bold",
-                        marginLeft: "0px",
-                      }}
-                    >
-                      {category.category_name}
-                    </Dropdown.Item>
-                  ))}
+                {getFlattenedCategories(categoryDropDownData).map((category) => (
+                  <Dropdown.Item
+                    key={category.id}
+                    eventKey={category.id.toString()}
+                    style={{
+                      marginLeft: "0px",
+                      paddingLeft: `${category.level * 15 + 12}px`,
+                    }}
+                  >
+                    {category.level > 0 ? "— ".repeat(category.level) : ""}{category.category_name}
+                  </Dropdown.Item>
+                ))}
               </DropdownButton>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Category Name
               </p>
               <div className="input-group d-flex flex-column w-100">
                 <input
                   type="text"
-                  className="form-control w-100"
+                  className={`form-control w-100 ${styles.formInput}`}
                   value={category_name}
                   onChange={(e) => setCategoryName(e.target.value)}
                 />
-                {errors.category_name && <div style={{ color: "red", fontSize: "13px" }}>{errors.category_name}</div>}
+                {errors.category_name && <div className={styles.formError}>{errors.category_name}</div>}
               </div>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Description
               </p>
               <textarea
-                className="form-control"
+                className={`form-control ${styles.formTextarea}`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            {renderSigningAssignmentFields("child")}
-            <div className="col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2">
-              <p
-                className="mb-1 text-start w-100"
-                style={{ fontSize: "14px" }}
-              >
+            <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2 ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Attributes
               </p>
               <div className="col-12">
-                <div
-                  style={{ marginBottom: "10px" }}
-                  className="w-100 d-flex metaBorder"
-                >
+                <div className={styles.attrInputGroup}>
                   <input
                     type="text"
                     value={currentAttribue}
                     onChange={(e) => setcurrentAttribue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Enter a attribute"
-                    style={{
-                      flex: 1,
-                      padding: "6px 10px",
-                      border: "1px solid #ccc",
-                      borderTopRightRadius: "0px !important",
-                      borderBottomRightRadius: "0px !important",
-                      backgroundColor: 'transparent',
-                      color: "#333",
-                    }}
                   />
                   <button
                     onClick={addAttribute}
-                    className="successButton"
-                    style={{
-                      padding: "10px",
-                      backgroundColor: "#4CAF50",
-                      color: "white",
-                      border: "1px solid #4CAF50",
-                      borderLeft: "none",
-                      borderTopRightRadius: "4px",
-                      borderBottomRightRadius: "4px",
-                      cursor: "pointer",
-                    }}
+                    className={styles.attrAddBtn}
                   >
                     <IoAdd />
                   </button>
                 </div>
                 <div>
                   {attributeData.map((tag, index) => (
-                    <div
-                      key={index}
-                      className="metaBorder"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "5px",
-                      }}
-                    >
+                    <div key={index} className={styles.attrItem}>
                       <input
                         type="text"
                         value={tag}
                         onChange={(e) =>
                           updateAttribute(index, e.target.value)
                         }
-                        style={{
-                          flex: 1,
-                          borderRadius: "0px",
-                          backgroundColor: 'transparent',
-                          border: "1px solid #ccc",
-                          color: "#333",
-                          padding: "6px 10px",
-                        }}
                       />
                       <button
                         onClick={() => removeAttribute(index)}
-                        className="dangerButton"
-                        style={{
-                          padding: "10px !important",
-                          backgroundColor: "#f44336",
-                          color: "white",
-                          border: "1px solid #4CAF50",
-                          borderLeft: "none",
-                          borderTopRightRadius: "4px",
-                          borderBottomRightRadius: "4px",
-                          cursor: "pointer",
-                          height: "34px"
-                        }}
+                        className={styles.attrRemoveBtn}
                       >
                         <IoTrashOutline />
                       </button>
@@ -1415,12 +1067,10 @@ export default function AllDocTable() {
             </div>
             {
               excelGenerated && (
-                <div className="col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2">
-                  <a href={excelGeneratedLink} download style={{ color: "#333" }} className="d-flex flex-row align-items-center ms-0 ">
-                    <div className="d-flex flex-row align-items-center custom-icon-button button-success px-3 py-1 rounded ">
-                      <IoMdCloudDownload />
-                      <p className="ms-3 mb-0">Download Template</p>
-                    </div>
+                <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 pe-2 ${styles.formGroup}`}>
+                  <a href={excelGeneratedLink} download className={styles.btnDownload}>
+                    <IoMdCloudDownload />
+                    <p className="ms-3 mb-0">Download Template</p>
                   </a>
                 </div>
               )
@@ -1428,10 +1078,10 @@ export default function AllDocTable() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <div className="d-flex flex-row">
+          <div className={styles.modalFooter}>
             <button
               onClick={() => handleAddChildCategory()}
-              className="custom-icon-button button-success px-3 py-1 rounded me-2"
+              className={styles.btnSave}
             >
               <IoSaveOutline fontSize={16} className="me-1" /> Save
             </button>
@@ -1442,13 +1092,12 @@ export default function AllDocTable() {
                 setcurrentAttribue('')
                 setCategoryName("")
                 setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                setDescription("")
+                setEditData(initialState)
               }}
-              className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+              className={styles.btnCancel}
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+              <MdCancel fontSize={16} className="me-1" /> Cancel
             </button>
           </div>
         </Modal.Footer>
@@ -1464,16 +1113,15 @@ export default function AllDocTable() {
           setcurrentAttribue('')
           setCategoryName("")
           setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+          setDescription("")
+          setEditData(initialState)
         }}
       >
         <Modal.Header>
           <div className="d-flex w-100 justify-content-end">
-            <div className="col-11 d-flex flex-row">
+            <div className={`col-11 d-flex flex-row align-items-center ${styles.modalHeader}`}>
               <IoFolder fontSize={20} className="me-2" />
-              <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
+              <p className={styles.modalTitle}>
                 Edit Category
               </p>
             </div>
@@ -1487,21 +1135,17 @@ export default function AllDocTable() {
                   setcurrentAttribue('')
                   setCategoryName("")
                   setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                  setDescription("")
+                  setEditData(initialState)
                 }}
               />
             </div>
           </div>
         </Modal.Header>
         <Modal.Body className="py-3">
-          <div
-            className="d-flex flex-column custom-scroll mb-3"
-            style={{ maxHeight: "300px", overflowY: "auto" }}
-          >
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+          <div className={`d-flex flex-column custom-scroll mb-3 ${styles.modalBody}`} style={{ maxHeight: "300px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Parent Category
               </p>
               <DropdownButton
@@ -1527,31 +1171,28 @@ export default function AllDocTable() {
                 >
                   None
                 </Dropdown.Item>
-
-                {categoryDropDownData
-                  .filter((category) => category.parent_category === "none")
-                  .map((category) => (
-                    <Dropdown.Item
-                      key={category.id}
-                      eventKey={category.id.toString()}
-                      style={{
-                        fontWeight: "bold",
-                        marginLeft: "0px",
-                      }}
-                    >
-                      {category.category_name}
-                    </Dropdown.Item>
-                  ))}
+                {editDropdownItems.map((category) => (
+                  <Dropdown.Item
+                    key={category.id}
+                    eventKey={category.id.toString()}
+                    style={{
+                      marginLeft: "0px",
+                      paddingLeft: `${category.level * 15 + 12}px`,
+                    }}
+                  >
+                    {category.level > 0 ? "— ".repeat(category.level) : ""}{category.category_name}
+                  </Dropdown.Item>
+                ))}
               </DropdownButton>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Category Name
               </p>
               <div className="input-group d-flex flex-column w-100">
                 <input
                   type="text"
-                  className="form-control w-100"
+                  className={`form-control w-100 ${styles.formInput}`}
                   value={editData.category_name}
                   onChange={(e) =>
                     setEditData((prevData) => ({
@@ -1560,15 +1201,15 @@ export default function AllDocTable() {
                     }))
                   }
                 />
-                {errors.category_name && <div style={{ color: "red", fontSize: "13px" }}>{errors.category_name}</div>}
+                {errors.category_name && <div className={styles.formError}>{errors.category_name}</div>}
               </div>
             </div>
-            <div className="col-12 col-lg-12 d-flex flex-column mb-2">
-              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+            <div className={`col-12 col-lg-12 d-flex flex-column ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Description
               </p>
               <textarea
-                className="form-control"
+                className={`form-control ${styles.formTextarea}`}
                 value={editData.description}
                 onChange={(e) =>
                   setEditData((prevData) => ({
@@ -1578,92 +1219,39 @@ export default function AllDocTable() {
                 }
               />
             </div>
-            {renderSigningAssignmentFields("edit")}
-            <div className="col-12 col-lg-12 d-flex flex-column ps-lg-2">
-              <p
-                className="mb-1 text-start w-100"
-                style={{ fontSize: "14px" }}
-              >
+            <div className={`col-12 col-lg-12 d-flex flex-column ps-lg-2 ${styles.formGroup}`}>
+              <p className={styles.formLabel}>
                 Attributes
               </p>
               <div className="col-12">
-                <div
-                  style={{ marginBottom: "10px" }}
-                  className="w-100 d-flex metaBorder"
-                >
+                <div className={styles.attrInputGroup}>
                   <input
                     type="text"
                     value={currentAttribue}
                     onChange={(e) => setcurrentAttribue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Enter a attribute"
-                    style={{
-                      flex: 1,
-                      padding: "6px 10px",
-                      border: "1px solid #ccc",
-                      borderTopRightRadius: "0 !important",
-                      borderBottomRightRadius: "0 !important",
-                      backgroundColor: 'transparent',
-                      color: "#333",
-                    }}
                   />
                   <button
                     onClick={addAttribute}
-                    className="successButton"
-                    style={{
-                      padding: "10px",
-                      backgroundColor: "#4CAF50",
-                      color: "white",
-                      border: "1px solid #4CAF50",
-                      borderLeft: "none",
-                      borderTopRightRadius: "4px",
-                      borderBottomRightRadius: "4px",
-                      cursor: "pointer",
-                    }}
+                    className={styles.attrAddBtn}
                   >
                     <IoAdd />
                   </button>
                 </div>
                 <div>
                   {attributeData.map((tag, index) => (
-                    <div
-                      key={index}
-                      className="metaBorder"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "5px",
-                      }}
-                    >
+                    <div key={index} className={styles.attrItem}>
                       <input
                         type="text"
                         value={tag}
                         onChange={(e) =>
                           updateAttribute(index, e.target.value)
                         }
-                        style={{
-                          flex: 1,
-                          borderRadius: "0px",
-                          backgroundColor: 'transparent',
-                          border: "1px solid #ccc",
-                          color: "#333",
-                          padding: "6px 10px",
-                        }}
                       />
                       <button
                         onClick={() => removeAttribute(index)}
-                        className="dangerButton"
-                        style={{
-                          padding: "10px !important",
-                          backgroundColor: "#f44336",
-                          color: "white",
-                          border: "1px solid #4CAF50",
-                          borderLeft: "none",
-                          borderTopRightRadius: "4px",
-                          borderBottomRightRadius: "4px",
-                          cursor: "pointer",
-                          height: "34px"
-                        }}
+                        className={styles.attrRemoveBtn}
                       >
                         <IoTrashOutline />
                       </button>
@@ -1674,12 +1262,10 @@ export default function AllDocTable() {
             </div>
             {
               editData.template && (
-                <div className="col-12 col-lg-12 d-flex flex-column mt-2 pe-2">
-                  <a href={editData.template} download style={{ color: "#333" }} className="d-flex flex-row align-items-center ms-0 ">
-                    <div className="d-flex flex-row align-items-center custom-icon-button button-success px-3 py-1 rounded ">
-                      <IoMdCloudDownload />
-                      <p className="ms-3 mb-0">Download Template</p>
-                    </div>
+                <div className={`col-12 col-lg-12 d-flex flex-column mt-2 pe-2 ${styles.formGroup}`}>
+                  <a href={editData.template} download className={styles.btnDownload}>
+                    <IoMdCloudDownload />
+                    <p className="ms-3 mb-0">Download Template</p>
                   </a>
                 </div>
               )
@@ -1688,10 +1274,10 @@ export default function AllDocTable() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <div className="d-flex flex-row">
+          <div className={styles.modalFooter}>
             <button
               onClick={() => handleEditCategory()}
-              className="custom-icon-button button-success px-3 py-1 rounded me-2"
+              className={styles.btnSave}
             >
               <IoSaveOutline fontSize={16} className="me-1" /> Save
             </button>
@@ -1702,13 +1288,12 @@ export default function AllDocTable() {
                 setcurrentAttribue('')
                 setCategoryName("")
                 setSelectedCategoryId("none")
-        setDescription("")
-        resetSigningAssignment();
-        setEditData(initialState)
+                setDescription("")
+                setEditData(initialState)
               }}
-              className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+              className={styles.btnCancel}
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+              <MdCancel fontSize={16} className="me-1" /> Cancel
             </button>
           </div>
         </Modal.Footer>
@@ -1724,10 +1309,7 @@ export default function AllDocTable() {
           <div className="d-flex flex-column">
             <div className="d-flex w-100 justify-content-end">
               <div className="col-11 d-flex flex-row py-3">
-                <p
-                  className="mb-0 text-danger"
-                  style={{ fontSize: "18px", color: "#333" }}
-                >
+                <p className={`mb-0 ${styles.deleteConfirmText}`}>
                   Are you sure you want to disable?
                 </p>
               </div>
@@ -1739,10 +1321,10 @@ export default function AllDocTable() {
                 />
               </div>
             </div>
-            <div className="d-flex flex-row">
+            <div className={styles.modalFooter}>
               <button
                 onClick={() => handleDeleteCategory()}
-                className="custom-icon-button button-success px-3 py-1 rounded me-2"
+                className={styles.btnSave}
               >
                 <IoCheckmark fontSize={16} className="me-1" /> Yes
               </button>
@@ -1750,9 +1332,9 @@ export default function AllDocTable() {
                 onClick={() => {
                   handleCloseModal("deleteModel");
                 }}
-                className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
+                className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </div>

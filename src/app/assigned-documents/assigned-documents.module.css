@@ -499,3 +499,141 @@
     font-size: 0.8125rem !important;
   }
 }
+
+/* Tab Navigation Styles */
+.tabsContainer {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #717182;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease, font-weight 0.2s ease;
+  border-radius: 0.375rem;
+}
+
+.tabButton:hover {
+  color: #EA580C;
+  background: #FFF4E8;
+}
+
+.tabButtonActive {
+  color: #EA580C;
+  font-weight: 600;
+  background: #FFF4E8;
+}
+
+.tabButtonActive::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #EA580C;
+  border-radius: 2px;
+}
+
+/* Address Bar and Breadcrumbs */
+.addressBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover:not(:disabled) {
+  background: #FFF4E8;
+  border-color: #EA580C;
+  color: #EA580C;
+}
+
+.backButton:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  color: #374151;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.breadcrumbItem {
+  color: #374151;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.breadcrumbItem:hover {
+  color: #EA580C;
+  text-decoration: underline;
+}
+
+.breadcrumbItem:last-child {
+  color: #0A0A0A;
+  font-weight: 600;
+  cursor: default;
+}
+
+.breadcrumbItem:last-child:hover {
+  text-decoration: none;
+}
+
+.separator {
+  color: #9ca3af;
+  user-select: none;
+  margin: 0 0.25rem;
+}
+
+.folderRow {
+  transition: background-color 0.2s ease;
+}
+
+.folderRow:hover {
+  background: #FFFBF7 !important;
+}
+
+.folderName {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  color: #0A0A0A;
+}
+

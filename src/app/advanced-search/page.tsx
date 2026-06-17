@@ -13,8 +13,9 @@ import { usePermissions } from "@/context/userPermissions";
 import useAuth from "@/hooks/useAuth";
 import { CommentItem, UserDropdownItem, RoleDropdownItem, VersionHistoryItem } from "@/types/types";
 import { deleteWithAuth, getWithAuth, postWithAuth } from "@/utils/apiClient";
-import { fetchCategoryData, fetchDocumentsData, fetchAndMapUserData, fetchRoleData, fetchVersionHistory } from "@/utils/dataFetchFunctions";
+import { fetchCategoryData, fetchDocumentsData, fetchAndMapUserData, fetchRoleData, fetchVersionHistory, fetchSectors } from "@/utils/dataFetchFunctions";
 import { handleDownload, handleViewOldDocument } from "@/utils/documentFunctions";
+import { getFlattenedSectors } from "@/utils/commonFunctions";
 import { hasPermission } from "@/utils/permission";
 import { Button, Checkbox, DatePicker, DatePickerProps, Input, Radio, RadioChangeEvent } from "antd";
 import dayjs from "dayjs";
@@ -44,8 +45,8 @@ import {
   MdEmail,
   MdFileDownload,
   MdModeEditOutline,
-  MdOutlineCancel,
-  MdOutlineInsertLink,
+  MdCancel,
+  MdInsertLink,
   MdUpload,
 } from "react-icons/md";
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
@@ -110,6 +111,12 @@ interface CategoryDropdownItem {
   category_name: string;
 }
 
+interface SectorDropdownItem {
+  id: number;
+  parent_sector: string;
+  sector_name: string;
+}
+
 interface HalfMonth {
   period: string;
   month: string;
@@ -119,6 +126,8 @@ interface HalfMonth {
 export default function AllDocTable() {
   const [filterData, setFilterData] = useState({
     term: "",
+    category: "",
+    sector: "",
   });
   const [isLoadingTable, setIsLoadingTable] = useState(false);
 
@@ -228,6 +237,7 @@ export default function AllDocTable() {
   const [categoryDropDownData, setCategoryDropDownData] = useState<
     CategoryDropdownItem[]
   >([]);
+  const [sectorDropDownData, setSectorDropDownData] = useState<SectorDropdownItem[]>([]);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>(
     []
   );
@@ -319,6 +329,7 @@ export default function AllDocTable() {
     fetchCategoryData(setCategoryDropDownData);
     fetchAndMapUserData(setUserDropDownData);
     fetchRoleData(setRoleDropDownData);
+    fetchSectors(setSectorDropDownData);
   }, []);
 
   useEffect(() => {
@@ -1647,18 +1658,27 @@ export default function AllDocTable() {
 
     if (filterData.term) {
       formData.append("term", filterData.term);
-    } else {
+    }
+    if (filterData.category) {
+      formData.append("category", filterData.category);
+    }
+    if (filterData.sector) {
+      formData.append("sector", filterData.sector);
+    }
+
+    // Require at least one filter before searching
+    if (!filterData.term && !filterData.category && !filterData.sector) {
       return;
     }
 
-    setIsLoadingTable(true)
+    setIsLoadingTable(true);
     try {
       const response = await postWithAuth("advanced-search", formData);
       setDummyData(response);
-      // fetchDocumentsData(response);
-      setIsLoadingTable(false)
+      setIsLoadingTable(false);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
+      setIsLoadingTable(false);
     }
   };
 
@@ -1758,6 +1778,65 @@ export default function AllDocTable() {
                     <FiSearch className="me-2" /> Search
                   </span>
                 </div>
+
+                {/* Category & Sector filter row */}
+                <div className={`d-flex flex-column flex-md-row gap-3 mb-3 ${styles.filterRow}`}>
+                  <div className="flex-fill">
+                    <label className={styles.filterLabel} htmlFor="search-category-select">
+                      Filter by Category
+                    </label>
+                    <select
+                      id="search-category-select"
+                      className={`form-select ${styles.filterSelect}`}
+                      value={filterData.category}
+                      onChange={(e) =>
+                        setFilterData((prev) => ({ ...prev, category: e.target.value }))
+                      }
+                    >
+                      <option value="">All Categories</option>
+                      {categoryDropDownData.map((cat) => (
+                        <option key={cat.id} value={String(cat.id)}>
+                          {cat.category_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex-fill">
+                    <label className={styles.filterLabel} htmlFor="search-sector-select">
+                      Filter by Sector
+                    </label>
+                    <select
+                      id="search-sector-select"
+                      className={`form-select ${styles.filterSelect}`}
+                      value={filterData.sector}
+                      onChange={(e) =>
+                        setFilterData((prev) => ({ ...prev, sector: e.target.value }))
+                      }
+                    >
+                      <option value="">All Sectors</option>
+                      {getFlattenedSectors(sectorDropDownData).map((sec) => (
+                        <option key={sec.id} value={String(sec.id)}>
+                          {"\u00A0\u00A0".repeat(sec.level) + sec.sector_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(filterData.category || filterData.sector) && (
+                    <div className="d-flex align-items-end">
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() =>
+                          setFilterData((prev) => ({ ...prev, category: "", sector: "" }))
+                        }
+                      >
+                        <IoClose className="me-1" /> Clear Filters
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <p className={styles.searchHint}>
                 You will receive up to 10 results for each search. The search is
                 not case-sensitive, so searching for &quot;Report&quot; and
@@ -1944,7 +2023,7 @@ export default function AllDocTable() {
                                 }
                                 className="py-2"
                               >
-                                <MdOutlineInsertLink className="me-2" />
+                                <MdInsertLink className="me-2" />
                                 Get Shareable Link
                               </Dropdown.Item>
                             )}
@@ -2422,7 +2501,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -2834,7 +2913,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -2898,7 +2977,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -2958,7 +3037,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -3012,7 +3091,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -3103,7 +3182,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -3255,7 +3334,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -4597,7 +4676,7 @@ export default function AllDocTable() {
                   }}
                   className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
                 >
-                  <MdOutlineCancel fontSize={16} className="me-1" /> No
+                  <MdCancel fontSize={16} className="me-1" /> No
                 </button>
               </div>
             </div>
@@ -4904,7 +4983,25 @@ export default function AllDocTable() {
               {viewDocument && (
                 <>
                   {/* Image Preview */}
-                  {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
+                  {
+                  ["mp4", "webm", "ogg", "avi", "mov", "mkv", "wmv"].includes(viewDocument.type?.toLowerCase()) ? (
+                      <div className="video-preview" style={{ width: "100%", textAlign: "center" }}>
+                          <video controls style={{ maxWidth: "100%", maxHeight: "500px" }}>
+                              <source src={viewDocument.url} type={`video/${viewDocument.type.toLowerCase() === 'mkv' ? 'webm' : viewDocument.type.toLowerCase()}`} />
+                              Your browser does not support the video tag.
+                          </video>
+                      </div>
+                  ) : 
+                  /* Audio Preview */
+                  ["mp3", "wav", "flac"].includes(viewDocument.type?.toLowerCase()) ? (
+                      <div className="audio-preview" style={{ width: "100%", padding: "20px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
+                          <audio controls style={{ width: "100%" }}>
+                              <source src={viewDocument.url} type={`audio/${viewDocument.type.toLowerCase() === 'mp3' ? 'mpeg' : viewDocument.type.toLowerCase()}`} />
+                              Your browser does not support the audio element.
+                          </audio>
+                      </div>
+                  ) :
+                  ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
                     <Image
                       src={viewDocument.url}
                       alt={viewDocument.name}
@@ -5155,7 +5252,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -5194,25 +5291,7 @@ export default function AllDocTable() {
               {oldVersionDocument && (
                 <>
                   {/* Image Preview */}
-                  {["mp4", "webm", "ogg", "avi", "mov", "mkv", "wmv"].includes(oldVersionDocument.type?.toLowerCase()) ? (
-                      <div className="video-preview" style={{ width: "100%", textAlign: "center" }}>
-                          <video controls style={{ maxWidth: "100%", maxHeight: "500px" }}>
-                              <source src={oldVersionDocument.url} type={`video/${oldVersionDocument.type.toLowerCase() === 'mkv' ? 'webm' : oldVersionDocument.type.toLowerCase()}`} />
-                              Your browser does not support the video tag.
-                          </video>
-                      </div>
-                  ) : 
-                  /* Audio Preview */
-                  ["mp3", "wav", "flac"].includes(oldVersionDocument.type?.toLowerCase()) ? (
-                      <div className="audio-preview" style={{ width: "100%", padding: "20px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-                          <audio controls style={{ width: "100%" }}>
-                              <source src={oldVersionDocument.url} type={`audio/${oldVersionDocument.type.toLowerCase() === 'mp3' ? 'mpeg' : oldVersionDocument.type.toLowerCase()}`} />
-                              Your browser does not support the audio element.
-                          </audio>
-                      </div>
-                  ) : 
-                  /* Image Preview */
-                  ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif", "tif"].includes(oldVersionDocument.type) ? (
+                  {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif", "tif"].includes(oldVersionDocument.type) ? (
                     <Image
                       src={oldVersionDocument.url}
                       alt={oldVersionDocument.name}
@@ -5263,7 +5342,7 @@ export default function AllDocTable() {
               }}
               className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Close
+              <MdCancel fontSize={16} className="me-1" /> Close
             </button>
           </Modal.Footer>
         </Modal>
@@ -5347,7 +5426,7 @@ export default function AllDocTable() {
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>

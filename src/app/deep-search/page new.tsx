@@ -44,8 +44,8 @@ import {
   MdEmail,
   MdFileDownload,
   MdModeEditOutline,
-  MdOutlineCancel,
-  MdOutlineInsertLink,
+  MdCancel,
+  MdInsertLink,
   MdUpload,
 } from "react-icons/md";
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
@@ -1977,7 +1977,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -2389,7 +2389,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -2453,7 +2453,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -2513,7 +2513,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> No
+                <MdCancel fontSize={16} className="me-1" /> No
               </button>
             </div>
           </Modal.Footer>
@@ -2567,7 +2567,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -2658,7 +2658,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -2802,7 +2802,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -4144,7 +4144,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                   }}
                   className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
                 >
-                  <MdOutlineCancel fontSize={16} className="me-1" /> No
+                  <MdCancel fontSize={16} className="me-1" /> No
                 </button>
               </div>
             </div>
@@ -4702,7 +4702,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
                 }}
                 className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
               >
-                <MdOutlineCancel fontSize={16} className="me-1" /> Cancel
+                <MdCancel fontSize={16} className="me-1" /> Cancel
               </button>
             </div>
           </Modal.Footer>
@@ -4741,25 +4741,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
               {oldVersionDocument && (
                 <>
                   {/* Image Preview */}
-                  {["mp4", "webm", "ogg", "avi", "mov", "mkv", "wmv"].includes(oldVersionDocument.type?.toLowerCase()) ? (
-                      <div className="video-preview" style={{ width: "100%", textAlign: "center" }}>
-                          <video controls style={{ maxWidth: "100%", maxHeight: "500px" }}>
-                              <source src={oldVersionDocument.url} type={`video/${oldVersionDocument.type.toLowerCase() === 'mkv' ? 'webm' : oldVersionDocument.type.toLowerCase()}`} />
-                              Your browser does not support the video tag.
-                          </video>
-                      </div>
-                  ) : 
-                  /* Audio Preview */
-                  ["mp3", "wav", "flac"].includes(oldVersionDocument.type?.toLowerCase()) ? (
-                      <div className="audio-preview" style={{ width: "100%", padding: "20px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-                          <audio controls style={{ width: "100%" }}>
-                              <source src={oldVersionDocument.url} type={`audio/${oldVersionDocument.type.toLowerCase() === 'mp3' ? 'mpeg' : oldVersionDocument.type.toLowerCase()}`} />
-                              Your browser does not support the audio element.
-                          </audio>
-                      </div>
-                  ) : 
-                  /* Image Preview */
-                  ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif", "tif"].includes(oldVersionDocument.type) ? (
+                  {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif", "tif"].includes(oldVersionDocument.type) ? (
                     <Image
                       src={oldVersionDocument.url}
                       alt={oldVersionDocument.name}
@@ -4810,7 +4792,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
               }}
               className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
             >
-              <MdOutlineCancel fontSize={16} className="me-1" /> Close
+              <MdCancel fontSize={16} className="me-1" /> Close
             </button>
           </Modal.Footer>
         </Modal>

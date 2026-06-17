@@ -4,11 +4,11 @@ import Heading from "@/components/common/Heading";
 import DashboardLayout from "@/components/DashboardLayout";
 import useAuth from "@/hooks/useAuth";
 import React, { useEffect, useState } from "react";
-import { Dropdown, DropdownButton, Modal, Table } from "react-bootstrap";
+import { Dropdown, DropdownButton, Modal, Table, Form, Pagination } from "react-bootstrap";
 import { AiFillDelete } from "react-icons/ai";
 import { FaEllipsisV } from "react-icons/fa";
 import { FaKey, FaPlus } from "react-icons/fa6";
-import { MdModeEditOutline, MdOutlineCancel, MdPeople } from "react-icons/md";
+import { MdModeEditOutline, MdCancel, MdPeople } from "react-icons/md";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { IoCheckmark, IoClose, IoSaveOutline } from "react-icons/io5";
@@ -46,6 +46,10 @@ export default function AllDocTable() {
     null
   );
   const [isAdEnabled, setIsAdEnabled] = useState<string>("0");
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
 
 
@@ -187,6 +191,39 @@ export default function AllDocTable() {
     }
   };
 
+  const filteredData = tableData.filter((item) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (item.email || "").toLowerCase().includes(term) ||
+      (item.firstName || "").toLowerCase().includes(term) ||
+      (item.lastName || "").toLowerCase().includes(term) ||
+      (item.mobileNumber || "").toLowerCase().includes(term)
+    );
+  });
+
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
+
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePrev = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
   return (
     <>
       <DashboardLayout>
@@ -212,6 +249,18 @@ export default function AllDocTable() {
           </div>
 
           <div className={styles.card}>
+            <div className="d-flex justify-content-end mb-3">
+              <input
+                type="text"
+                className="form-control w-25"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
             <div className={`${styles.tableWrapper} custom-scroll`}>
               {hasPermission(permissions, "User", "View Users") && (
                 <Table hover responsive>
@@ -226,8 +275,8 @@ export default function AllDocTable() {
                   </thead>
                   <tbody>
 
-                    {tableData.length > 0 ? (
-                      tableData.map((item) => (
+                    {paginatedData.length > 0 ? (
+                      paginatedData.map((item) => (
                         <tr key={item.id}>
                           <td>
                             <DropdownButton
@@ -362,7 +411,7 @@ export default function AllDocTable() {
                       onClick={handleClose}
                       className={styles.btnCancel}
                     >
-                      <MdOutlineCancel fontSize={16} /> Cancel
+                      <MdCancel fontSize={16} /> Cancel
                     </button>
                   </div>
                 </div>
@@ -408,13 +457,13 @@ export default function AllDocTable() {
                       }}
                       className={styles.btnCancel}
                     >
-                      <MdOutlineCancel fontSize={16} /> No
+                      <MdCancel fontSize={16} /> No
                     </button>
                   </div>
                 </div>
               </Modal.Body>
             </Modal>
-            {/* <div className="d-flex flex-column flex-lg-row paginationFooter">
+            <div className="d-flex flex-column flex-lg-row paginationFooter">
               <div className="d-flex justify-content-between align-items-center">
                 <p className="pagintionText mb-0 me-2">Items per page:</p>
                 <Form.Select
@@ -447,7 +496,7 @@ export default function AllDocTable() {
                   />
                 </Pagination>
               </div>
-            </div> */}
+            </div>
             <ToastMessage
               message={toastMessage}
               show={showToast}

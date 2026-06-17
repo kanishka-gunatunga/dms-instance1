@@ -23,7 +23,7 @@ import {
   MdArrowDropDown,
   MdArrowDropUp,
   MdModeEditOutline,
-  MdOutlineCancel,
+  MdCancel,
 } from "react-icons/md";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { IoCheckmark, IoClose } from "react-icons/io5";
@@ -480,7 +480,7 @@ export default function AllDocTable() {
                 }}
                 className={styles.btnCancel}
               >
-                <MdOutlineCancel fontSize={16} /> No
+                <MdCancel fontSize={16} /> No
               </button>
             </div>
           </div>

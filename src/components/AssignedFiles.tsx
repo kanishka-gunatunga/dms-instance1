@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {Button, Tag, Table} from 'antd';
 import type {TableProps} from 'antd';
 import {BsEye, BsDownload} from 'react-icons/bs';
@@ -14,7 +14,7 @@ import {useUserContext} from "@/context/userContext";
 import {getWithAuth} from "@/utils/apiClient";
 import {Modal} from "react-bootstrap";
 import {IoClose} from "react-icons/io5";
-import {MdOutlineCancel} from "react-icons/md";
+import {MdCancel} from "react-icons/md";
 // import styles from '../styles/AssignedFiles.module.css';
 
 dayjs.extend(relativeTime);
@@ -146,28 +146,23 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
 
     const newFilesCount = documents.filter(doc => doc.is_new === 1).length;
 
+    const handleGetViewData = useCallback(async (id: number) => {
+        try {
+            const response = await getWithAuth(`view-document/${id}/${userId}`);
+            const data = response.data;
+
+            setViewDocument(data);
+        } catch (error) {
+            console.error("Error :", error);
+        }
+    }, [userId, setViewDocument]);
+
     useEffect(() => {
         if (modalStates.viewModel && selectedDocumentId !== null) {
             handleGetViewData(selectedDocumentId);
             // console.log("View Document : ", viewDocument)
         }
-    }, [modalStates.viewModel, selectedDocumentId]);
-
-    const handleGetViewData = async (id: number) => {
-        try {
-            const response = await getWithAuth(`view-document/${id}/${userId}`);
-            const data = response.data;
-
-            // const parsedMetaTags = JSON.parse(data.meta_tags || "[]");
-            // const parsedAttributes = JSON.parse(data.attributes || "[]");
-
-            setViewDocument(data);
-            // setMetaTags(parsedMetaTags);
-            // setAttributes(parsedAttributes);
-        } catch (error) {
-            console.error("Error :", error);
-        }
-    };
+    }, [modalStates.viewModel, selectedDocumentId, handleGetViewData]);
 
     const handleCloseModal = (modalName: keyof typeof modalStates) => {
         setModalStates((prev) => ({...prev, [modalName]: false}));
@@ -262,25 +257,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                         {viewDocument && (
                             <>
                                 {/* Image Preview */}
-                                {["mp4", "webm", "ogg", "avi", "mov", "mkv", "wmv"].includes(viewDocument.type?.toLowerCase()) ? (
-                      <div className="video-preview" style={{ width: "100%", textAlign: "center" }}>
-                          <video controls style={{ maxWidth: "100%", maxHeight: "500px" }}>
-                              <source src={viewDocument.url} type={`video/${viewDocument.type.toLowerCase() === 'mkv' ? 'webm' : viewDocument.type.toLowerCase()}`} />
-                              Your browser does not support the video tag.
-                          </video>
-                      </div>
-                  ) : 
-                  /* Audio Preview */
-                  ["mp3", "wav", "flac"].includes(viewDocument.type?.toLowerCase()) ? (
-                      <div className="audio-preview" style={{ width: "100%", padding: "20px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-                          <audio controls style={{ width: "100%" }}>
-                              <source src={viewDocument.url} type={`audio/${viewDocument.type.toLowerCase() === 'mp3' ? 'mpeg' : viewDocument.type.toLowerCase()}`} />
-                              Your browser does not support the audio element.
-                          </audio>
-                      </div>
-                  ) : 
-                  /* Image Preview */
-                  ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
+                                {["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico", "avif"].includes(viewDocument.type) ? (
                                         <Image
                                             src={viewDocument.url}
                                             alt={viewDocument.name}
@@ -337,7 +314,7 @@ const AssignedFiles: React.FC<AssignedFilesProps> = ({documents, userId}) => {
                             }}
                             className="custom-icon-button button-danger text-white bg-danger px-3 py-1 rounded"
                         >
-                            <MdOutlineCancel fontSize={16} className="me-1"/> Cancel
+                            <MdCancel fontSize={16} className="me-1"/> Cancel
                         </button>
                     </div>
                 </Modal.Footer>
