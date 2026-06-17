@@ -34,7 +34,7 @@ const nextConfig = {
             object-src 'none';
             connect-src 'self' https://dms1.genaitech.dev;
             img-src 'self' data: https: blob:;
-             media-src 'self' https: http:;
+            media-src 'self' https: http:;
             script-src 'self' 'unsafe-inline' 'unsafe-eval';
             style-src 'self' 'unsafe-inline' https:;
             font-src 'self' https: data:;
