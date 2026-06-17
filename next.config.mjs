@@ -50,7 +50,7 @@ const nextConfig = {
 
       style-src 'self' 'unsafe-inline' https:;
       font-src 'self' https: data:;
-    `;
+     `;
 
     return [
       {
