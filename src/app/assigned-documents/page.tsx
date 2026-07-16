@@ -6547,9 +6547,17 @@ export default function AllDocTable() {
               
                             {viewDocument?.type === "pdf" && hasPermission(permissions, "Assigned Documents", "Redact Document") && (
                               <button
-                                onClick={() =>
-                                  handleOpenModal("redactDocumentModel", viewDocument.id, viewDocument.name)
-                                }
+                                onClick={() => {
+                                  if (viewDocument?.is_redacted === 1) {
+                                    setToastMessage(
+                                      "You cannot redact this document again because it has already been redacted. To redact this document again, the user who redacted it must first undo the redaction."
+                                    );
+                                    setToastType("error");
+                                    setShowToast(true);
+                                  } else {
+                                    handleOpenModal("redactDocumentModel", viewDocument.id, viewDocument.name);
+                                  }
+                                }}
                                 className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
                               >
                                 <MdModeEditOutline className="me-2" />
