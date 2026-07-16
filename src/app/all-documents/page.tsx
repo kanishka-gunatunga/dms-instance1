@@ -7017,7 +7017,7 @@ export default function AllDocTable() {
             show={modalStates.viewSignHistoryModel}
             handleClose={() => handleCloseModal("viewSignHistoryModel")}
             documentId={selectedDocumentId}
-            documentName={selectedDocumentName}
+            documentName={selectedDocumentName ?? ""}
           />
         )}
         {/* toast message */}
