@@ -13,7 +13,9 @@ import StatCard from "@/components/StatCard";
 import PieChartCard from "@/components/PieChartCard";
 import RemindersCalendar from "@/components/RemindersCalendar";
 import NearlyExpiredDocuments from "@/components/NearlyExpiredDocuments";
+import PendingArchiveDocuments from "@/components/PendingArchiveDocuments";
 import { getWithAuth } from "@/utils/apiClient";
+import Link from "next/link";
 import { useUserContext } from "@/context/userContext";
 import AssignedFiles from "@/components/AssignedFiles";
 import MySector from "@/components/MySector";
@@ -53,6 +55,7 @@ interface AdminDashboardData {
         percentage: number;
     }[];
     near_expiry_documents: NearExpiryDocument[];
+    pending_archive_documents?: any[];
 }
 
 
@@ -79,6 +82,7 @@ export interface UserDashboardData {
             days_to_expire: number;
         }
     };
+    pending_archive_documents?: any[];
 }
 
 export interface NearExpiryDocument {
@@ -113,8 +117,10 @@ export default function Home() {
     const [categoryChartData, setCategoryChartData] = useState<ChartDataItem[]>([]);
     const [sectorChartData, setSectorChartData] = useState<ChartDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [pendingSignaturesCount, setPendingSignaturesCount] = useState<number>(0);
 
     const [nearlyExpiredDocs, setNearlyExpiredDocs] = useState<NearExpiryDocument[]>([]);
+    const [pendingArchiveDocs, setPendingArchiveDocs] = useState<any[]>([]);
 
     // const fetchDashboardData = async () => {
     //     try {
@@ -170,6 +176,23 @@ export default function Home() {
         };
         fetchRoleData();
     }, [userId]);
+
+    useEffect(() => {
+        const fetchPendingSignatures = async () => {
+            try {
+                const response = await getWithAuth("pending-signatures");
+                if (Array.isArray(response)) {
+                    setPendingSignaturesCount(response.length);
+                }
+            } catch (error) {
+                console.error("Failed to fetch pending signatures:", error);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchPendingSignatures();
+        }
+    }, [isAuthenticated]);
 
     console.log("---------is admin: ", isAdmin);
 
@@ -240,6 +263,10 @@ export default function Home() {
                     setNearlyExpiredDocs(data.near_expiry_documents);
                 }
 
+                if (data.pending_archive_documents) {
+                    setPendingArchiveDocs(data.pending_archive_documents);
+                }
+
                 if (data.documents_by_sector) {
                     setSectorChartData(data.documents_by_sector.filter(item => item.percentage > 0).map(item => ({
                         name: item.sector_name,
@@ -263,6 +290,14 @@ export default function Home() {
                         name: doc.document_name,
                     }));
                     setNearlyExpiredDocs(docsArray);
+                }
+
+                if (data.pending_archive_documents) {
+                    const pendingDocsArray = Object.values(data.pending_archive_documents).map(doc => ({
+                        ...doc,
+                        name: doc.document_name,
+                    }));
+                    setPendingArchiveDocs(pendingDocsArray);
                 }
             }
 
@@ -405,8 +440,19 @@ export default function Home() {
                     style={{ minHeight: "100vh", maxHeight: "100%", overflowY: "scroll", paddingBottom: "3rem" }}
                 >
                     <div
-                        className="d-flex flex-column rounded"
+                        className="d-flex flex-column rounded mb-3"
                     >
+                        {pendingSignaturesCount > 0 && (
+                            <div className="alert alert-warning d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-4 border-warning" style={{ backgroundColor: "#fff3cd", color: "#856404" }}>
+                                <div>
+                                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <strong>Action Required:</strong> You have {pendingSignaturesCount} document(s) assigned to you that require your signature.
+                                </div>
+                                <Link href="/signatures/sign-requests" className="btn btn-warning btn-sm fw-bold mt-2 mt-sm-0 text-nowrap">
+                                    Review and Sign
+                                </Link>
+                            </div>
+                        )}
                         {isAdmin === 1 && adminData && (
                             // <div className="d-flex flex-row align-items-center justify-content-between gap-1">
                             <div className="row g-3">
@@ -522,6 +568,9 @@ export default function Home() {
                     <RemindersCalendar reminders={selectedDates} />
 
                     <NearlyExpiredDocuments initialDocuments={nearlyExpiredDocs} userId={userId} isAdmin={isAdmin}
+                        onRefresh={fetchAllData} />
+
+                    <PendingArchiveDocuments initialDocuments={pendingArchiveDocs} userId={userId} isAdmin={isAdmin}
                         onRefresh={fetchAllData} />
 
                     {/* Spacer*/}

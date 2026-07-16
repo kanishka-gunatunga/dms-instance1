@@ -21,6 +21,7 @@ import NearlyExpiredDocuments from "@/components/NearlyExpiredDocuments";
 import MySector from "@/components/MySector";
 import AssignedFiles from "@/components/AssignedFiles";
 import {getWithAuth} from "@/utils/apiClient";
+import Link from "next/link";
 
 
 type Reminder = {
@@ -87,6 +88,7 @@ export default function Home() {
     const [categoryChartData, setCategoryChartData] = useState<ChartDataItem[]>([]);
     const [sectorChartData, setSectorChartData] = useState<ChartDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [pendingSignaturesCount, setPendingSignaturesCount] = useState<number>(0);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -125,6 +127,23 @@ export default function Home() {
 
         if (isAuthenticated) {
             fetchDashboardData();
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        const fetchPendingSignatures = async () => {
+            try {
+                const response = await getWithAuth("pending-signatures");
+                if (Array.isArray(response)) {
+                    setPendingSignaturesCount(response.length);
+                }
+            } catch (error) {
+                console.error("Failed to fetch pending signatures:", error);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchPendingSignatures();
         }
     }, [isAuthenticated]);
 
@@ -205,6 +224,17 @@ export default function Home() {
                         className="d-flex flex-column rounded mb-3"
                         style={{marginTop: "12px"}}
                     >
+                        {pendingSignaturesCount > 0 && (
+                            <div className="alert alert-warning d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-4 border-warning" style={{ backgroundColor: "#fff3cd", color: "#856404" }}>
+                                <div>
+                                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <strong>Action Required:</strong> You have {pendingSignaturesCount} document(s) assigned to you that require your signature.
+                                </div>
+                                <Link href="/signatures/sign-requests" className="btn btn-warning btn-sm fw-bold mt-2 mt-sm-0 text-nowrap">
+                                    Review and Sign
+                                </Link>
+                            </div>
+                        )}
                         <div className="d-flex flex-row align-items-center justify-content-between gap-1">
                             <StatCard title="Assigned Files" value={1247} icon="/total_document.svg" changeText="+12%"
                                       changeColorClass="positiveChange"/>

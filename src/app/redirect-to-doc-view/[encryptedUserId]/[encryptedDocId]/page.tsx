@@ -181,7 +181,7 @@ const RedirectToDocViewPage = ({ params }: Props) => {
             <p className="mb-1" style={{ fontSize: "14px" }}>
               Category :{" "}
               <span style={{ fontWeight: 600 }}>
-                {viewDocument?.category.category_name}
+                {viewDocument?.category?.category_name ?? 'No Category'}
               </span>
             </p>
             <p className="mb-1 " style={{ fontSize: "14px" }}>

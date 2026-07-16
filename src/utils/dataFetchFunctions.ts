@@ -9,7 +9,7 @@ import {
     AuditTrialItem,
     RoleUserItem
 } from "@/types/types";
-import {getWithAuth} from "./apiClient";
+import {getWithAuth, postWithAuth} from "./apiClient";
 import dayjs from "dayjs";
 
 export const fetchCategoryData = async (
@@ -110,6 +110,26 @@ export const fetchAndMapUserData = async (
         setUserDropDownData(mappedData);
     } catch (error) {
         console.error("Failed to fetch user data:", error);
+    }
+};
+
+export const fetchAndMapUsersBySectorsData = async (
+    sectorIds: (string|number)[],
+    setUserDropDownData: React.Dispatch<React.SetStateAction<UserDropdownItem[]>>
+) => {
+    try {
+        const formData = new FormData();
+        sectorIds.forEach(id => formData.append('sector_ids[]', String(id)));
+        const response = await postWithAuth("users-by-sectors", formData);
+
+        const mappedData: UserDropdownItem[] = response.map((item: any) => ({
+            id: item?.id,
+            user_name: `${item?.user_details?.first_name} ${item?.user_details?.last_name}`,
+        }));
+
+        setUserDropDownData(mappedData);
+    } catch (error) {
+        console.error("Failed to fetch user data by sectors:", error);
     }
 };
 

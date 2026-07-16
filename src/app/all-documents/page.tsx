@@ -58,7 +58,7 @@ import {
   getWithAuth,
   postWithAuth,
 } from "@/utils/apiClient";
-import { handleDownload, handleView, handleViewOldDocument } from "@/utils/documentFunctions";
+import { handleDownload, handleView, handleViewOldDocument, handleDownloadSignHistory } from "@/utils/documentFunctions";
 import {
   fetchAndMapUserData,
   fetchCategoryData,
@@ -93,6 +93,8 @@ import { useChat } from "@/context/ChatContext";
 import { PiStarFourThin } from "react-icons/pi";
 import styles from "./all-documents.module.css";
 import { getFlattenedCategories } from "@/utils/commonFunctions";
+const RedactDocumentModal = dynamic(() => import("@/components/RedactDocumentModal"), { ssr: false });
+const ViewSignHistoryModal = dynamic(() => import("@/components/ViewSignHistoryModal"), { ssr: false });
 
 interface Category {
   category_name: string;
@@ -107,6 +109,7 @@ interface TableItem {
   type: string;
   created_by: string;
   document_preview: string;
+  is_redacted?: number;
 }
 
 interface ShareItem {
@@ -142,7 +145,8 @@ interface ViewDocumentItem {
   attributes: string;
   type: string;
   url: string;
-  enable_external_file_view: number;
+  enable_external_file_view: number
+  is_redacted?: number;
 }
 
 interface CategoryDropdownItem {
@@ -289,15 +293,18 @@ export default function AllDocTable() {
     docArchivedModel: false,
     uploadNewVersionFileModel: false,
     sendEmailModel: false,
+    sendBulkEmailModel: false,
     versionHistoryModel: false,
     commentModel: false,
     addReminderModel: false,
     removeIndexingModel: false,
     deleteFileModel: false,
     deleteBulkFileModel: false,
+    viewSignHistoryModel: false,
     allDocShareModel: false,
     viewModel: false,
     viewOldDocumentModel: false,
+    redactDocumentModel: false,
   });
   const [generatedLink, setGeneratedLink] = useState<string>("");
   const [generatedID, setGeneratedID] = useState<number>(0);
@@ -1355,6 +1362,48 @@ export default function AllDocTable() {
     }
   };
 
+  const handleSendBulkEmail = async (userId: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("subject", sendEmailData?.subject || "");
+      formData.append("body", sendEmailData?.body || "");
+      formData.append("to", sendEmailData?.to || "");
+      formData.append("user", userId || "");
+      formData.append("documents", JSON.stringify(selectedItems));
+
+      const response = await postWithAuth(
+        `document-bulk-send-email`,
+        formData
+      );
+      if (response.status === "fail") {
+        setToastType("error");
+        setToastMessage("An error occurred while sending the bulk email!");
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+        }, 5000);
+      } else {
+        handleCloseModal("sendBulkEmailModel");
+        setSendEmailData(null);
+        setSelectedItems([]);
+        setSelectedItemsNames([]);
+        setSelectAll(false);
+        setToastType("success");
+        setToastMessage("Bulk email sent successfully!");
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+        }, 5000);
+      }
+    } catch (error) {
+      setToastType("error");
+      setToastMessage("An error occurred while sending the bulk email!");
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
+    }
+  };
   const validate = () => {
     const validationErrors: any = {};
 
@@ -1405,6 +1454,13 @@ export default function AllDocTable() {
   //     console.error("Error :", error);
   //   }
   // };
+
+
+  useEffect(() => {
+    if (modalStates.redactDocumentModel && selectedDocumentId !== null) {
+      handleGetViewData(selectedDocumentId);
+    }
+  }, [modalStates.redactDocumentModel, selectedDocumentId]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLTableRowElement>) => {
     setCursorPosition({ x: e.clientX, y: e.clientY });
@@ -1978,7 +2034,7 @@ export default function AllDocTable() {
   // Files/documents in the current folder
   const currentFolderFiles = dummyData.filter((doc) => {
     if (currentFolderId === null) {
-      return !doc.category || !doc.category.category_name;
+      return !doc.category || !doc.category?.category_name;
     }
     const docCat = doc.category as any;
     const activeCategory = categoryDropDownData.find((c) => c.id === currentFolderId);
@@ -2156,6 +2212,17 @@ export default function AllDocTable() {
                                 Share
                               </Dropdown.Item>
                             )}
+                            {hasPermission(permissions, "All Documents", "Send Email") && (
+                              <Dropdown.Item
+                                onClick={() =>
+                                  handleOpenModal("sendBulkEmailModel")
+                                }
+                                className="py-2"
+                              >
+                                <MdEmail className="me-2" />
+                                Email
+                              </Dropdown.Item>
+                            )}
                           {hasPermission(
                             permissions,
                             "All Documents",
@@ -2269,6 +2336,17 @@ export default function AllDocTable() {
                                   View
                                 </Dropdown.Item>
                               )}
+                              {/* {item.type === "pdf" && hasPermission(permissions, "All Documents", "Redact Document") && (
+                                                            <Dropdown.Item
+                                                              onClick={() =>
+                                                                handleOpenModal("redactDocumentModel", item.id, item.name)
+                                                              }
+                                                              className="py-2"
+                                                            >
+                                                              <MdModeEditOutline className="me-2" />
+                                                              Redact Document
+                                                            </Dropdown.Item>
+                                                          )} */}
                             {hasPermission(
                               permissions,
                               "All Documents",
@@ -2289,7 +2367,7 @@ export default function AllDocTable() {
                                 </Dropdown.Item>
                               )}
 
-                            {/*["pdf", "docx", "xlsx", "pptx", "txt"].includes(
+                            {["pdf", "docx", "xlsx", "pptx", "txt"].includes(
                               item.type
                             ) &&
                               hasPermission(
@@ -2385,7 +2463,7 @@ export default function AllDocTable() {
                                     </div>
                                   )}
                                 </Dropdown.Item>
-                              )*/}
+                              )}
 
                             {/* <Dropdown.Item
                               onMouseEnter={(e) => {
@@ -2515,6 +2593,34 @@ export default function AllDocTable() {
                                     <MdFileDownload className="me-2" />
                                     Download
                                   </Link>
+                                </Dropdown.Item>
+                              )}
+                            {hasPermission(
+                              permissions,
+                              "All Documents",
+                              "Download Document"
+                            ) && (
+                                <Dropdown.Item className="py-2">
+                                  <Link
+                                    href={"#"}
+                                    style={{ color: "#212529" }}
+                                    onClick={() =>
+                                      handleDownloadSignHistory(item.id)
+                                    }
+                                  >
+                                    <MdFileDownload className="me-2" />
+                                    Download Sign History
+                                  </Link>
+                                </Dropdown.Item>
+                              )}
+                            {hasPermission(
+                              permissions,
+                              "All Documents",
+                              "Download Document"
+                            ) && (
+                                <Dropdown.Item className="py-2" onClick={() => handleOpenModal("viewSignHistoryModel", item.id, item.name)}>
+                                  <IoEye className="me-2" />
+                                  View Sign History
                                 </Dropdown.Item>
                               )}
                             {hasPermission(
@@ -3046,6 +3152,34 @@ export default function AllDocTable() {
                                   <MdFileDownload className="me-2" />
                                   Download
                                 </Link>
+                              </Dropdown.Item>
+                            )}
+                          {hasPermission(
+                            permissions,
+                            "All Documents",
+                            "Download Document"
+                          ) && (
+                              <Dropdown.Item className="py-2">
+                                <Link
+                                  href={"#"}
+                                  style={{ color: "#212529" }}
+                                  onClick={() =>
+                                    handleDownloadSignHistory(item.id)
+                                  }
+                                >
+                                  <MdFileDownload className="me-2" />
+                                  Download Sign History
+                                </Link>
+                              </Dropdown.Item>
+                            )}
+                          {hasPermission(
+                            permissions,
+                            "All Documents",
+                            "Download Document"
+                          ) && (
+                              <Dropdown.Item className="py-2" onClick={() => handleOpenModal("viewSignHistoryModel", item.id, item.name)}>
+                                <IoEye className="me-2" />
+                                View Sign History
                               </Dropdown.Item>
                             )}
                           {hasPermission(
@@ -6191,7 +6325,121 @@ export default function AllDocTable() {
             </div>
           </Modal.Footer>
         </Modal>
-        {/* view Modal */}
+         {/* send bulk email model */}
+        <Modal
+          centered
+          show={modalStates.sendBulkEmailModel}
+          className="large-model"
+          onHide={() => {
+            handleCloseModal("sendBulkEmailModel");
+            setSendEmailData(null);
+          }}
+        >
+          <Modal.Header>
+            <div className="d-flex w-100 justify-content-end">
+              <div className="col-11 d-flex flex-row">
+                <p className="mb-0" style={{ fontSize: "16px", color: "#333" }}>
+                  Send Bulk Email
+                </p>
+              </div>
+              <div className="col-1 d-flex justify-content-end">
+                <IoClose
+                  fontSize={20}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    handleCloseModal("sendBulkEmailModel");
+                    setSendEmailData(null);
+                  }}
+                />
+              </div>
+            </div>
+          </Modal.Header>
+          <Modal.Body className="py-3">
+            <div
+              className="d-flex flex-column custom-scroll mb-3"
+              style={{ maxHeight: "300px", overflowY: "auto" }}
+            >
+              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+                To
+              </p>
+              <div className="input-group mb-2">
+                <input
+                  type="text"
+                  className="form-control"
+                  id="to"
+                  value={sendEmailData?.to || ""}
+                  onChange={(e) =>
+                    setSendEmailData((prev) => ({
+                      ...(prev || { subject: "", body: "", to: "" }),
+                      to: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+                Subject
+              </p>
+              <div className="input-group mb-2">
+                <input
+                  type="text"
+                  className="form-control"
+                  id="subject"
+                  value={sendEmailData?.subject || ""}
+                  onChange={(e) =>
+                    setSendEmailData((prev) => ({
+                      ...(prev || { subject: "", body: "", to: "" }),
+                      subject: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <p className="mb-1 text-start w-100" style={{ fontSize: "14px" }}>
+                Body
+              </p>
+              <ReactQuill
+                value={sendEmailData?.body || ""}
+                onChange={(content) =>
+                  setSendEmailData((prev) => ({
+                    ...(prev || { subject: "", body: "", to: "" }),
+                    body: content,
+                  }))
+                }
+              />
+              <div className="d-flex w-100">
+                <p
+                  className="mb-1 text-start w-100 px-3 py-2 rounded mt-2"
+                  style={{ fontSize: "14px", backgroundColor: "#eee" }}
+                >
+                  Attachment Documents :: {selectedItemsNames.join(", ")}
+                </p>
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <div className="d-flex flex-row">
+              <button
+                onClick={() => handleSendBulkEmail(userId!)}
+                className="custom-icon-button button-success px-3 py-1 rounded me-2"
+              >
+                <IoMdSend fontSize={16} className="me-1" /> Send
+              </button>
+            </div>
+          </Modal.Footer>
+        </Modal>
+        
+          {modalStates.redactDocumentModel && selectedDocumentId && viewDocument && (
+            <RedactDocumentModal
+              show={modalStates.redactDocumentModel}
+              onHide={() => handleCloseModal("redactDocumentModel")}
+              documentId={selectedDocumentId}
+              documentUrl={viewDocument.url}
+              onSuccess={() => fetchDocumentsData(setDummyData)}
+            />
+          )}
+
+{/* view Modal */}
         <Modal
           centered
           show={modalStates.viewModel}
@@ -6296,7 +6544,7 @@ export default function AllDocTable() {
             <p className="mb-1" style={{ fontSize: "14px" }}>
               Category :{" "}
               <span style={{ fontWeight: 600 }}>
-                {viewDocument?.category.category_name}
+                {viewDocument?.category?.category_name ?? 'No Category'}
               </span>
             </p>
             <p className="mb-1 " style={{ fontSize: "14px" }}>
@@ -6341,7 +6589,35 @@ export default function AllDocTable() {
             </div>
 
             <div className="d-flex flex-wrap gap-3 py-3">
-              {hasPermission(permissions, "All Documents", "Edit Document") && (
+
+              {/* {viewDocument?.is_redacted === 1 && (
+                <button
+                  onClick={async () => {
+                    const res = await postWithAuth(`undo-redact-document/${viewDocument.id}`, new FormData());
+                    if(res.status === "success") {
+                       handleCloseModal("viewModel");
+                       fetchDocumentsData(setDummyData);
+                    }
+                  }}
+                  className="addButton me-2 bg-white text-dark border border-danger rounded px-3 py-1"
+                >
+                  <IoAdd className="me-1 fs-5" /> Undo Redaction
+                </button>
+              )}
+
+              
+                            {viewDocument?.type === "pdf" && hasPermission(permissions, "All Documents", "Redact Document") && (
+                              <button
+                                onClick={() =>
+                                  handleOpenModal("redactDocumentModel", viewDocument.id, viewDocument.name)
+                                }
+                                className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
+                              >
+                                <MdModeEditOutline className="me-2" />
+                                Redact Document
+                              </button>
+                            )} */}
+{hasPermission(permissions, "All Documents", "Edit Document") && (
                 <button
                   onClick={() =>
                     handleOpenModal(
@@ -6735,6 +7011,15 @@ export default function AllDocTable() {
             </div>
           </Modal.Footer>
         </Modal>
+        {/* view sign history model */}
+        {modalStates.viewSignHistoryModel && (
+          <ViewSignHistoryModal
+            show={modalStates.viewSignHistoryModel}
+            handleClose={() => handleCloseModal("viewSignHistoryModel")}
+            documentId={selectedDocumentId}
+            documentName={selectedDocumentName}
+          />
+        )}
         {/* toast message */}
         <ToastMessage
           message={toastMessage}

@@ -4498,7 +4498,7 @@ const [generatedID, setGeneratedID] =useState<number>(0);
               Document Name : <span style={{ fontWeight: 600 }} >{viewDocument?.name || ""}</span>
             </p>
             <p className="mb-1" style={{ fontSize: "14px" }}>
-              Category : <span style={{ fontWeight: 600 }} >{viewDocument?.category.category_name}</span>
+              Category : <span style={{ fontWeight: 600 }} >{viewDocument?.category?.category_name ?? 'No Category'}</span>
             </p>
             <p className="mb-1 " style={{ fontSize: "14px" }}>
               Description : <span style={{ fontWeight: 600 }} >{viewDocument?.description || ""}</span>

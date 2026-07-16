@@ -27,6 +27,7 @@ import LoadingSpinner from "./common/LoadingSpinner";
 import { HiDocumentReport } from "react-icons/hi";
 import ChatWindow from "./chat/ChatWindow";
 import { AiOutlineMenu } from "react-icons/ai";
+import {FaPenNib} from "react-icons/fa";
 import Footer from "./common/Footer";
 // import { notification } from 'antd';
 
@@ -191,6 +192,23 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             url: "/archived-documents",
             icon: <BsArchive />,
             permission: { group: "Archived Documents", action: "View Documents" },
+        },
+        {
+            name: "Signatures",
+            url: "#",
+            icon: <FaPenNib/>,
+            subItems: [
+                {
+                    name: "Sign Approval",
+                    url: "/signatures/sign-approval",
+                    permission: { group: "Signatures", action: "Sign Approval" }
+                },
+                {
+                    name: "Sign Requests",
+                    url: "/signatures/sign-requests",
+                    permission: { group: "Signatures", action: "Sign Requests" }
+                },
+            ],
         },
         {
             name: "Reminder",

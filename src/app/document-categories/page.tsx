@@ -17,7 +17,7 @@ import {
   Pagination,
   Table,
 } from "react-bootstrap";
-import { CategoryDropdownItem } from "@/types/types";
+import { CategoryDropdownItem, UserDropdownItem, RoleDropdownItem } from "@/types/types";
 import { AiOutlineDelete } from "react-icons/ai";
 import { FaPlus } from "react-icons/fa6";
 import ToastMessage from "@/components/common/Toast";
@@ -28,15 +28,19 @@ import {
 } from "react-icons/md";
 import { IoAdd, IoCheckmark, IoClose, IoFolder, IoSaveOutline, IoTrashOutline } from "react-icons/io5";
 import { MdCancel } from "react-icons/md";
+import { MdOutlineCancel } from "react-icons/md";
 import {
   fetchCategoryChildrenData,
   fetchCategoryData,
+  fetchRoleData,
+  fetchAndMapUserData,
 } from "@/utils/dataFetchFunctions";
 import { deleteWithAuth, getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { usePermissions } from "@/context/userPermissions";
 import { hasPermission } from "@/utils/permission";
 import { IoMdCloudDownload } from "react-icons/io";
 import { getFlattenedCategories } from "@/utils/commonFunctions";
+import { fetchAndMapUsersBySectorsData } from "@/utils/dataFetchFunctions";
 import styles from "./document-categories.module.css";
 
 interface Category {
@@ -52,7 +56,8 @@ const initialState = {
   parent_category: "",
   category_name: "",
   description: "",
-  template: ""
+  template: "",
+  sectors: [] as any[]
 };
 
 interface FlattenedCategory extends Category {
@@ -128,6 +133,13 @@ export default function AllDocTable() {
   const [excelGenerated, setExcelGenerated] = useState(false);
   const [excelGeneratedLink, setExcelGeneratedLink] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const [userDropDownData, setUserDropDownData] = useState<UserDropdownItem[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [users, setUsers] = useState<string[]>([]);
+  const [roleDropDownData, setRoleDropDownData] = useState<RoleDropdownItem[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [signingLevels, setSigningLevels] = useState<{ level: number; users: string[] }[]>([]);
 
   const [modalStates, setModalStates] = useState({
     addCategory: false,
@@ -139,6 +151,8 @@ export default function AllDocTable() {
   useEffect(() => {
     fetchCategoryChildrenData(setDummyData);
     fetchCategoryData(setCategoryDropDownData);
+    fetchAndMapUserData(setUserDropDownData);
+    fetchRoleData(setRoleDropDownData);
   }, []);
 
   useEffect(() => {
@@ -158,6 +172,82 @@ export default function AllDocTable() {
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
   };
+
+  const resetSigningAssignment = () => {
+    setSelectedUserIds([]);
+    setUsers([]);
+    setSelectedRoleIds([]);
+    setRoles([]);
+    setSigningLevels([]);
+  };
+
+  const handleRoleSelect = (roleId: string) => {
+    const selectedRole = roleDropDownData.find((role) => role.id.toString() === roleId);
+    if (selectedRole && !selectedRoleIds.includes(roleId)) {
+      setSelectedRoleIds([...selectedRoleIds, roleId]);
+      setRoles([...roles, selectedRole.role_name]);
+    }
+  };
+
+  const handleRemoveRole = (roleName: string) => {
+    const roleToRemove = roleDropDownData.find((role) => role.role_name === roleName);
+    if (roleToRemove) {
+      setSelectedRoleIds(selectedRoleIds.filter((id) => id !== roleToRemove.id.toString()));
+      setRoles(roles.filter((r) => r !== roleName));
+    }
+  };
+
+  const handleUserSelect = (userId: string) => {
+    const selectedUser = userDropDownData.find((user) => user.id.toString() === userId);
+    if (selectedUser && !selectedUserIds.includes(userId)) {
+      setSelectedUserIds([...selectedUserIds, userId]);
+      setUsers([...users, selectedUser.user_name]);
+    }
+  };
+
+  const handleUserRole = (userName: string) => {
+    const userToRemove = userDropDownData.find((user) => user.user_name === userName);
+    if (userToRemove) {
+      setSelectedUserIds(selectedUserIds.filter((id) => id !== userToRemove.id.toString()));
+      setUsers(users.filter((r) => r !== userName));
+    }
+  };
+
+  const renderSigningAssignmentFields = (idSuffix: string) => (
+    <>
+      <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+        <label className={styles.formLabel}>Assign roles</label>
+        <div className="d-flex flex-column position-relative">
+          <DropdownButton
+            id={`dropdown-roles-button-${idSuffix}`}
+            title={roles.length > 0 ? roles.join(", ") : "Select Roles"}
+            className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+            onSelect={(value) => {
+              if (value) handleRoleSelect(value);
+            }}
+          >
+            {roleDropDownData.length > 0 ? (
+              roleDropDownData.map((role) => (
+                <Dropdown.Item key={role.id} eventKey={role.id.toString()}>
+                  {role.role_name}
+                </Dropdown.Item>
+              ))
+            ) : (
+              <Dropdown.Item disabled>No Roles available</Dropdown.Item>
+            )}
+          </DropdownButton>
+          <div className="mt-1">
+            {roles.map((role, index) => (
+              <span key={index} className={styles.badge}>
+                {role}
+                <IoClose className={styles.badgeClose} onClick={() => handleRemoveRole(role)} />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   const handleEditCategorySelect = (value: string) => {
     if (value === "none") {
@@ -264,7 +354,8 @@ export default function AllDocTable() {
     formData.append("parent_category", selectedCategoryId);
     formData.append("category_name", category_name || "");
     formData.append("description", description);
-    formData.append("attribute_data", JSON.stringify(attributeData))
+    formData.append("attribute_data", JSON.stringify(attributeData));
+    
 
     try {
 
@@ -296,6 +387,7 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
+        resetSigningAssignment();
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add category!");
@@ -334,11 +426,11 @@ export default function AllDocTable() {
     setErrors({});
     try {
       const formData = new FormData();
-      formData.append("parent_category", selectedParentId?.toString() || "none");
+      formData.append("parent_category", selectedCategoryId || "none");
       formData.append("category_name", category_name || "");
       formData.append("description", description);
-
-      formData.append("attribute_data", JSON.stringify(attributeData))
+      formData.append("attribute_data", JSON.stringify(attributeData));
+      
 
       // formData.forEach((value, key) => {
       //   console.log(`${key}: ${value}`);
@@ -368,6 +460,7 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
+        resetSigningAssignment();
         setEditData(initialState)
         setToastType("error");
         setToastMessage("Failed to add child category!");
@@ -421,6 +514,36 @@ export default function AllDocTable() {
 
         setattributeData(parsedAttributes);
         setEditData(response);
+
+        if (response.sectors && response.sectors.length > 0) {
+            const sectorIds = response.sectors.map((s: any) => s.id);
+            fetchAndMapUsersBySectorsData(sectorIds, setUserDropDownData);
+        } else {
+            setUserDropDownData([]);
+        }
+
+        if (response.signing_users) {
+          try {
+            const parsedLevels = typeof response.signing_users === "string"
+              ? JSON.parse(response.signing_users)
+              : response.signing_users;
+            if (Array.isArray(parsedLevels)) {
+              if (parsedLevels.length > 0 && typeof parsedLevels[0] === 'object') {
+                  setSigningLevels(parsedLevels);
+              } else {
+                  setSigningLevels([{ level: 1, users: parsedLevels }]);
+              }
+            } else {
+              setSigningLevels([]);
+            }
+          } catch (e) {
+            console.error("Failed to parse signing_users:", e);
+            setSigningLevels([]);
+          }
+        } else {
+            setSigningLevels([]);
+        }
+
         console.log("category data::: ", response);
       }
     } catch (error) {
@@ -439,21 +562,24 @@ export default function AllDocTable() {
   };
 
   const handleEditCategory = async () => {
-
     try {
       const formData = new FormData();
       formData.append("parent_category", editData.parent_category || "");
       formData.append("category_name", editData.category_name || "");
       formData.append("description", editData.description);
       formData.append("attribute_data", JSON.stringify(attributeData));
+      
+      if (signingLevels && signingLevels.length > 0) {
+        formData.append("signing_users", JSON.stringify(signingLevels));
+      } else {
+        formData.append("signing_users", "[]");
+      }
 
-      formData.forEach((value, key) => {
-        console.log(`${key}: ${value}`);
-      });
       const response = await postWithAuth(
         `category-details/${selectedItemId}`,
         formData
       );
+      
       if (response.status === "success") {
         handleCloseModal("editModel");
         setattributeData([]);
@@ -461,6 +587,7 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
+        resetSigningAssignment();
         setEditData(initialState)
 
         setToastType("success");
@@ -479,6 +606,7 @@ export default function AllDocTable() {
         setCategoryName("")
         setSelectedCategoryId("none")
         setDescription("")
+        resetSigningAssignment();
         setEditData(initialState)
 
         setToastType("error");
@@ -508,7 +636,7 @@ export default function AllDocTable() {
       if (response.status === "success") {
         handleCloseModal("deleteModel");
         setToastType("success");
-        setToastMessage("Category disabled successfully!");
+        setToastMessage("Category deleted successfully!");
         setShowToast(true);
         setTimeout(() => {
           setShowToast(false);
@@ -518,7 +646,7 @@ export default function AllDocTable() {
       } else {
         handleCloseModal("deleteModel");
         setToastType("error");
-        setToastMessage("Failed to disable category!");
+        setToastMessage("Failed to deleted category!");
         setShowToast(true);
         setTimeout(() => {
           setShowToast(false);
@@ -527,7 +655,7 @@ export default function AllDocTable() {
     } catch (error) {
       handleCloseModal("deleteModel");
       setToastType("error");
-      setToastMessage("Failed to disable category!");
+      setToastMessage("Failed to deleted category!");
       setShowToast(true);
       setTimeout(() => {
         setShowToast(false);
@@ -655,7 +783,7 @@ export default function AllDocTable() {
                                       fontSize={16}
                                       className="me-1"
                                     />{" "}
-                                    Disable
+                                    Delete
                                   </button>
                                 )}
                             </div>
@@ -664,9 +792,9 @@ export default function AllDocTable() {
                             <div className="d-flex flex-row align-items-center" style={{ paddingLeft: `${item.depth * 24}px` }}>
                               <IoFolder className="me-2 text-primary" style={{ minWidth: "16px" }} />
                               <span>{item.category_name}</span>
-                              <span className={`ms-2 mb-0 ${item.status === 'active' ? styles.badgeActive : styles.badgeInactive}`}>
+                              {/* <span className={`ms-2 mb-0 ${item.status === 'active' ? styles.badgeActive : styles.badgeInactive}`}>
                                 {item.status}
-                              </span>
+                              </span> */}
                             </div>
                           </td>
                           <td className="border-0">
@@ -744,6 +872,7 @@ export default function AllDocTable() {
           setCategoryName("")
           setSelectedCategoryId("none")
           setDescription("")
+          resetSigningAssignment();
           setEditData(initialState)
         }}
       >
@@ -766,6 +895,7 @@ export default function AllDocTable() {
                   setCategoryName("")
                   setSelectedCategoryId("none")
                   setDescription("")
+                  resetSigningAssignment();
                   setEditData(initialState)
                 }}
               />
@@ -907,6 +1037,7 @@ export default function AllDocTable() {
                 setCategoryName("")
                 setSelectedCategoryId("none")
                 setDescription("")
+                resetSigningAssignment();
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -928,6 +1059,7 @@ export default function AllDocTable() {
           setCategoryName("")
           setSelectedCategoryId("none")
           setDescription("")
+          resetSigningAssignment();
           setEditData(initialState)
         }}
       >
@@ -950,6 +1082,7 @@ export default function AllDocTable() {
                   setCategoryName("")
                   setSelectedCategoryId("none")
                   setDescription("")
+                  resetSigningAssignment();
                   setEditData(initialState)
                 }}
               />
@@ -1093,6 +1226,7 @@ export default function AllDocTable() {
                 setCategoryName("")
                 setSelectedCategoryId("none")
                 setDescription("")
+                resetSigningAssignment();
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -1114,6 +1248,7 @@ export default function AllDocTable() {
           setCategoryName("")
           setSelectedCategoryId("none")
           setDescription("")
+          resetSigningAssignment();
           setEditData(initialState)
         }}
       >
@@ -1136,6 +1271,7 @@ export default function AllDocTable() {
                   setCategoryName("")
                   setSelectedCategoryId("none")
                   setDescription("")
+                  resetSigningAssignment();
                   setEditData(initialState)
                 }}
               />
@@ -1261,6 +1397,84 @@ export default function AllDocTable() {
               </div>
             </div>
             {
+              editData.sectors && editData.sectors.length > 0 ? (
+                <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+                  <label className={styles.formLabel}>
+                    Signing Levels 
+                    <button 
+                      type="button"
+                      className="btn btn-sm btn-success ms-2"
+                      onClick={() => setSigningLevels([...signingLevels, { level: signingLevels.length + 1, users: [] }])}
+                    >
+                      <FaPlus /> Add Level
+                    </button>
+                  </label>
+                  {signingLevels.map((levelObj, levelIndex) => (
+                    <div key={levelIndex} className="d-flex flex-column position-relative mt-2 p-2 border rounded">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Level {levelObj.level}</strong>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => {
+                            const newLevels = signingLevels.filter((_, i) => i !== levelIndex);
+                            newLevels.forEach((l, i) => l.level = i + 1);
+                            setSigningLevels(newLevels);
+                          }}
+                        >
+                          <IoTrashOutline />
+                        </button>
+                      </div>
+                      <DropdownButton
+                        id={`dropdown-level-${levelObj.level}-users`}
+                        title="Select Users"
+                        className={`custom-dropdown-text-start text-start w-100 ${styles.dropdownToggle}`}
+                        onSelect={(value) => {
+                          if (value && !levelObj.users.includes(value)) {
+                            const newLevels = [...signingLevels];
+                            newLevels[levelIndex].users.push(value);
+                            setSigningLevels(newLevels);
+                          }
+                        }}
+                      >
+                        {userDropDownData.length > 0 ? (
+                          userDropDownData.map((user) => (
+                            <Dropdown.Item key={user.id} eventKey={user.id.toString()}>
+                              {user.user_name}
+                            </Dropdown.Item>
+                          ))
+                        ) : (
+                          <Dropdown.Item disabled>No users available for these sectors</Dropdown.Item>
+                        )}
+                      </DropdownButton>
+                      <div className="mt-1">
+                        {levelObj.users.map((userId, userIndex) => {
+                          const user = userDropDownData.find(u => u.id.toString() === userId.toString());
+                          const userName = user ? user.user_name : userId;
+                          return (
+                            <span key={userIndex} className={styles.badge}>
+                              {userName}
+                              <IoClose className={styles.badgeClose} onClick={() => {
+                                const newLevels = [...signingLevels];
+                                newLevels[levelIndex].users = newLevels[levelIndex].users.filter(id => id !== userId);
+                                setSigningLevels(newLevels);
+                              }} />
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={`col-12 col-lg-12 d-flex flex-column pe-2 ${styles.formGroup}`}>
+                  <label className={styles.formLabel}>Signing Levels</label>
+                  <div className="d-flex flex-column position-relative mt-2">
+                    <Paragraph text="First assign the category to a sector to assign users" color="#dc3545" />
+                  </div>
+                </div>
+              )
+            }
+            {
               editData.template && (
                 <div className={`col-12 col-lg-12 d-flex flex-column mt-2 pe-2 ${styles.formGroup}`}>
                   <a href={editData.template} download className={styles.btnDownload}>
@@ -1289,6 +1503,7 @@ export default function AllDocTable() {
                 setCategoryName("")
                 setSelectedCategoryId("none")
                 setDescription("")
+                resetSigningAssignment();
                 setEditData(initialState)
               }}
               className={styles.btnCancel}
@@ -1310,7 +1525,7 @@ export default function AllDocTable() {
             <div className="d-flex w-100 justify-content-end">
               <div className="col-11 d-flex flex-row py-3">
                 <p className={`mb-0 ${styles.deleteConfirmText}`}>
-                  Are you sure you want to disable?
+                  Are you sure you want to delete?
                 </p>
               </div>
               <div className="col-1 d-flex justify-content-end">

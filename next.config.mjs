@@ -1,12 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['react-pdf', 'pdfjs-dist'],
+  swcMinify: false,
+
   images: {
     domains: [
       'localhost',
-      '127.0.0.1',
-      'dms1.genaitech.dev'
+      '127.0.0.1'
     ],
     unoptimized: true,
+  },
+
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+
+    config.module.rules.push({
+      test: /pdfjs-dist[\\/].*\.mjs$/,
+      type: 'javascript/auto',
+    });
+
+    return config;
   },
 
   async headers() {
@@ -29,7 +42,8 @@ const nextConfig = {
       frame-ancestors 'self'
         http://localhost:3000
         http://127.0.0.1:3000
-        https://dms-instance1.vercel.app;
+        https://dms-instance1.vercel.app
+        https://dms1.genaitech.dev;
 
       connect-src 'self'
         http://localhost:3000
@@ -41,7 +55,7 @@ const nextConfig = {
         https://login.microsoftonline.com
         https://graph.microsoft.com;
 
-      img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://dms-instance1.vercel.app https://dms1.genaitech.dev;
+      img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://dms-instance1.vercel.app:* https://dms1.genaitech.dev:*;
 
       script-src 'self' 'unsafe-inline' 'unsafe-eval'
         https://static.cloudflareinsights.com
@@ -50,7 +64,7 @@ const nextConfig = {
 
       style-src 'self' 'unsafe-inline' https:;
       font-src 'self' https: data:;
-     `;
+    `;
 
     return [
       {

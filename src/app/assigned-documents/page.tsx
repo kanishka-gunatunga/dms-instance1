@@ -54,7 +54,7 @@ import useAuth from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { deleteWithAuth, getWithAuth, postWithAuth } from "@/utils/apiClient";
 import { useRouter } from "next/navigation";
-import { handleDownload, handleView, handleViewOldDocument } from "@/utils/documentFunctions";
+import { handleDownload, handleView, handleViewOldDocument, handleDownloadSignHistory } from "@/utils/documentFunctions";
 import {
   fetchAndMapUserData,
   fetchAssignedDocumentsData,
@@ -64,6 +64,7 @@ import {
   fetchVersionHistory,
 } from "@/utils/dataFetchFunctions";
 import { useUserContext } from "@/context/userContext";
+import { useChat } from "@/context/ChatContext";
 import ToastMessage from "@/components/common/Toast";
 import { IoMdSend, IoMdTrash } from "react-icons/io";
 import {
@@ -89,6 +90,8 @@ import { hasPermission } from "@/utils/permission";
 import Image from "next/image";
 import styles from "./assigned-documents.module.css";
 import { getFlattenedCategories } from "@/utils/commonFunctions";
+const RedactDocumentModal = dynamic(() => import("@/components/RedactDocumentModal"), { ssr: false });
+const ViewSignHistoryModal = dynamic(() => import("@/components/ViewSignHistoryModal"), { ssr: false });
 
 interface Category {
   category_name: string;
@@ -102,6 +105,7 @@ interface TableItem {
   created_date: string;
   created_by: string;
   document_preview: string;
+  is_redacted?: number;
   type?: string;
 }
 
@@ -139,6 +143,7 @@ interface ViewDocumentItem {
   type: string;
   url: string;
   enable_external_file_view: number
+  is_redacted?: number;
 }
 
 interface CategoryDropdownItem {
@@ -156,6 +161,9 @@ interface HalfMonth {
 export default function AllDocTable() {
   const { userId, userName } = useUserContext();
   const permissions = usePermissions();
+  const { toggleChat } = useChat();
+  const [showSubMenu, setShowSubMenu] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const [activeTab, setActiveTab] = useState<"tab_view" | "folder_view">("tab_view");
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
@@ -283,7 +291,9 @@ export default function AllDocTable() {
     reminderDeleteModel: false,
     viewModel: false,
     viewOldDocumentModel: false,
+    redactDocumentModel: false,
     deleteBulkFileModel: false,
+    viewSignHistoryModel: false,
   });
 
   const [generatedLink, setGeneratedLink] = useState<string>("");
@@ -489,6 +499,13 @@ export default function AllDocTable() {
     }
   }, [modalStates.viewModel, selectedDocumentId]);
 
+
+
+  useEffect(() => {
+    if (modalStates.redactDocumentModel && selectedDocumentId !== null) {
+      handleGetViewData(selectedDocumentId);
+    }
+  }, [modalStates.redactDocumentModel, selectedDocumentId]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLTableRowElement>) => {
     setCursorPosition({ x: e.clientX, y: e.clientY });
@@ -2014,7 +2031,7 @@ export default function AllDocTable() {
   // Files/documents in the current folder
   const currentFolderFiles = dummyData.filter((doc) => {
     if (currentFolderId === null) {
-      return !doc.category || !doc.category.category_name;
+      return !doc.category || !doc.category?.category_name;
     }
     const docCat = doc.category as any;
     const activeCategory = categoryDropDownData.find((c) => c.id === currentFolderId);
@@ -2183,13 +2200,13 @@ export default function AllDocTable() {
                           className="no-caret position-static dropdown-toggle-bulk"
                           style={{ zIndex: "99999", padding: '0px !important', backgroundColor: "transparent", color: "#000" }}
                         >
-                          {/* {hasPermission(permissions, "All Documents", "Share Document") && (
+                          {/* {hasPermission(permissions, "Assigned Documents", "Share Document") && (
                             <Dropdown.Item onClick={() => handleOpenModal("allDocShareModel")} className="py-2">
                               <IoShareSocial className="me-2" />
                               Share
                             </Dropdown.Item>
                           )} */}
-                          {hasPermission(permissions, "All Documents", "Delete Document") && (
+                          {hasPermission(permissions, "Assigned Documents", "Delete Document") && (
                             <Dropdown.Item
                               onClick={() => handleOpenModal("deleteBulkFileModel")}
                               className="py-2"
@@ -2282,7 +2299,19 @@ export default function AllDocTable() {
                               </Dropdown.Item>
                             )}
 
-                            {hasPermission(permissions, "Assigned Documents", "Edit Document") && (
+                            
+                            {item.type === "pdf" && hasPermission(permissions, "Assigned Documents", "Redact Document") && (
+                              <Dropdown.Item
+                                onClick={() =>
+                                  handleOpenModal("redactDocumentModel", item.id, item.name)
+                                }
+                                className="py-2"
+                              >
+                                <MdModeEditOutline className="me-2" />
+                                Redact Document
+                              </Dropdown.Item>
+                            )}
+{hasPermission(permissions, "Assigned Documents", "Edit Document") && (
                               <Dropdown.Item
                                 onClick={() =>
                                   handleOpenModal("editModel", item.id, item.name)
@@ -2293,6 +2322,105 @@ export default function AllDocTable() {
                                 Edit
                               </Dropdown.Item>
                             )}
+
+                            {["pdf", "docx", "xlsx", "pptx", "txt"].includes(
+                              item.type || ""
+                            ) &&
+                              hasPermission(
+                                permissions,
+                                "Assigned Documents",
+                                "AI Options"
+                              ) && (
+                                <Dropdown.Item
+                                  onMouseEnter={(e) => {
+                                    setAnchorEl(e.currentTarget);
+                                    setShowSubMenu(true);
+                                  }}
+                                  onMouseLeave={() => {
+                                    setShowSubMenu(false);
+                                  }}
+                                  className="py-2 position-relative"
+                                >
+                                  <Image
+                                    src="/icons8-ai-48.png"
+                                    alt="ai icon"
+                                    width={16}
+                                    height={16}
+                                    className="me-2"
+                                  />
+                                  AI Options
+                                  {showSubMenu && (
+                                    <div
+                                      onMouseEnter={() => setShowSubMenu(true)}
+                                      onMouseLeave={() => setShowSubMenu(false)}
+                                      className="position-absolute bg-white shadow rounded"
+                                      style={{
+                                        top: 0,
+                                        left: "100%",
+                                        zIndex: 100000,
+                                        minWidth: "200px",
+                                      }}
+                                    >
+                                      <Dropdown.Item
+                                        onClick={() =>
+                                          toggleChat({
+                                            documentId: item.id.toString(),
+                                            documentName: item.name,
+                                            action: "summarize",
+                                          })
+                                        }
+                                      >
+                                        Summarize Document
+                                      </Dropdown.Item>
+                                      <Dropdown.Item
+                                        onClick={() =>
+                                          toggleChat({
+                                            documentId: item.id.toString(),
+                                            documentName: item.name,
+                                            action: "generate",
+                                          })
+                                        }
+                                      >
+                                        Content Generation
+                                      </Dropdown.Item>
+                                      <Dropdown.Item
+                                        onClick={() =>
+                                          toggleChat({
+                                            documentId: item.id.toString(),
+                                            documentName: item.name,
+                                            action: "qa",
+                                          })
+                                        }
+                                      >
+                                        Ask Questions
+                                      </Dropdown.Item>
+                                      <Dropdown.Item
+                                        onClick={() =>
+                                          toggleChat({
+                                            documentId: item.id.toString(),
+                                            documentName: item.name,
+                                            action: "tone",
+                                          })
+                                        }
+                                      >
+                                        Sentiment Analysis
+                                      </Dropdown.Item>
+                                      <Dropdown.Item
+                                        onClick={() =>
+                                          toggleChat({
+                                            documentId: item.id.toString(),
+                                            documentName: item.name,
+                                            action: "translate",
+                                          })
+                                        }
+                                      >
+                                        Translate Document
+                                      </Dropdown.Item>
+                                    </div>
+                                  )}
+                                </Dropdown.Item>
+                              )}
+
 
                             {hasPermission(permissions, "Assigned Documents", "Share Document") && (
                               <Dropdown.Item onClick={() =>
@@ -2328,6 +2456,24 @@ export default function AllDocTable() {
                                   <MdFileDownload className="me-2" />
                                   Download
                                 </Link>
+                              </Dropdown.Item>
+                            )}
+                            {hasPermission(permissions, "Assigned Documents", "Download") && (
+                              <Dropdown.Item className="py-2">
+                                <Link
+                                  href={"#"}
+                                  style={{ color: "#212529" }}
+                                  onClick={() => handleDownloadSignHistory(item.id)}
+                                >
+                                  <MdFileDownload className="me-2" />
+                                  Download Sign History
+                                </Link>
+                              </Dropdown.Item>
+                            )}
+                            {hasPermission(permissions, "Assigned Documents", "Download") && (
+                              <Dropdown.Item className="py-2" onClick={() => handleOpenModal("viewSignHistoryModel", item.id, item.name)}>
+                                <IoEye className="me-2" />
+                                View Sign History
                               </Dropdown.Item>
                             )}
                             {hasPermission(permissions, "Assigned Documents", "Upload New Version file") && (
@@ -2830,6 +2976,34 @@ export default function AllDocTable() {
                                   <MdFileDownload className="me-2" />
                                   Download
                                 </Link>
+                              </Dropdown.Item>
+                            )}
+                          {hasPermission(
+                            permissions,
+                            "Assigned Documents",
+                            "Download Document"
+                          ) && (
+                              <Dropdown.Item className="py-2">
+                                <Link
+                                  href={"#"}
+                                  style={{ color: "#212529" }}
+                                  onClick={() =>
+                                    handleDownloadSignHistory(item.id)
+                                  }
+                                >
+                                  <MdFileDownload className="me-2" />
+                                  Download Sign History
+                                </Link>
+                              </Dropdown.Item>
+                            )}
+                          {hasPermission(
+                            permissions,
+                            "Assigned Documents",
+                            "Download Document"
+                          ) && (
+                              <Dropdown.Item className="py-2" onClick={() => handleOpenModal("viewSignHistoryModel", item.id, item.name)}>
+                                <IoEye className="me-2" />
+                                View Sign History
                               </Dropdown.Item>
                             )}
                           {hasPermission(
@@ -6196,7 +6370,18 @@ export default function AllDocTable() {
             </div>
           </Modal.Body>
         </Modal>
-        {/* view Modal */}
+        
+          {modalStates.redactDocumentModel && selectedDocumentId && viewDocument && (
+            <RedactDocumentModal
+              show={modalStates.redactDocumentModel}
+              onHide={() => handleCloseModal("redactDocumentModel")}
+              documentId={selectedDocumentId}
+              documentUrl={viewDocument.url}
+              onSuccess={() => fetchAssignedDocumentsData(setDummyData)}
+            />
+          )}
+
+{/* view Modal */}
         <Modal
           centered
           show={modalStates.viewModel}
@@ -6293,7 +6478,7 @@ export default function AllDocTable() {
               Document Name : <span style={{ fontWeight: 600 }} >{viewDocument?.name || ""}</span>
             </p>
             <p className="mb-1" style={{ fontSize: "14px" }}>
-              Category : <span style={{ fontWeight: 600 }} >{viewDocument?.category.category_name}</span>
+              Category : <span style={{ fontWeight: 600 }} >{viewDocument?.category?.category_name ?? 'No Category'}</span>
             </p>
             <p className="mb-1 " style={{ fontSize: "14px" }}>
               Description : <span style={{ fontWeight: 600 }} >{viewDocument?.description || ""}</span>
@@ -6330,7 +6515,48 @@ export default function AllDocTable() {
             </div>
 
             <div className="d-flex flex-wrap gap-3 py-3">
-              {hasPermission(permissions, "All Documents", "Edit Document") && (
+
+              {viewDocument?.is_redacted === 1 && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await postWithAuth(`undo-redact-document/${viewDocument.id}`, new FormData());
+                      if(res && res.status === "success") {
+                         handleCloseModal("viewModel");
+                         fetchAssignedDocumentsData(setDummyData);
+                         setToastMessage(res.message || "Redaction undone successfully");
+                         setToastType("success");
+                         setShowToast(true);
+                      } else if (res && res.status === "fail") {
+                         setToastMessage(res.message || "Failed to undo redaction");
+                         setToastType("error");
+                         setShowToast(true);
+                      }
+                    } catch (error: any) {
+                      setToastMessage(error.response?.data?.message || "Error undoing redaction");
+                      setToastType("error");
+                      setShowToast(true);
+                    }
+                  }}
+                  className="addButton me-2 bg-white text-dark border border-danger rounded px-3 py-1"
+                >
+                  <IoAdd className="me-1 fs-5" /> Undo Redaction
+                </button>
+              )}
+
+              
+                            {viewDocument?.type === "pdf" && hasPermission(permissions, "Assigned Documents", "Redact Document") && (
+                              <button
+                                onClick={() =>
+                                  handleOpenModal("redactDocumentModel", viewDocument.id, viewDocument.name)
+                                }
+                                className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1"
+                              >
+                                <MdModeEditOutline className="me-2" />
+                                Redact Document
+                              </button>
+                            )}
+{hasPermission(permissions, "Assigned Documents", "Edit Document") && (
                 <button
                   onClick={() =>
                     handleOpenModal("editModel", viewDocument?.id, viewDocument?.name)
@@ -6341,7 +6567,8 @@ export default function AllDocTable() {
                   Edit
                 </button>
               )}
-              {hasPermission(permissions, "All Documents", "Share Document") && (
+              
+              {hasPermission(permissions, "Assigned Documents", "Share Document") && (
                 <button onClick={() =>
                   handleOpenModal(
                     "shareDocumentModel",
@@ -6352,7 +6579,7 @@ export default function AllDocTable() {
                   Share
                 </button>
               )}
-              {hasPermission(permissions, "All Documents", "Manage Sharable Link") && (
+              {hasPermission(permissions, "Assigned Documents", "Manage Sharable Link") && (
                 <button onClick={() =>
                   handleGetShareableLinkModel(viewDocument?.id || 0)
                 }
@@ -6361,7 +6588,7 @@ export default function AllDocTable() {
                   Get Shareable Link
                 </button>
               )}
-              {hasPermission(permissions, "All Documents", "Download Document") && viewDocument?.id && (
+              {hasPermission(permissions, "Assigned Documents", "Download Document") && viewDocument?.id && (
                 <button
                   onClick={() => handleDownload(viewDocument?.id || 0, userId)}
                   className="addButton me-2 bg-white text-dark border border-success rounded px-3 py-1">
@@ -6407,7 +6634,7 @@ export default function AllDocTable() {
                 Comment
               </button>
 
-              {hasPermission(permissions, "All Documents", "Add Reminder") && (
+              {hasPermission(permissions, "Assigned Documents", "Add Reminder") && (
                 <button
                   onClick={() =>
                     handleOpenModal(
@@ -6421,7 +6648,7 @@ export default function AllDocTable() {
                   Add Reminder
                 </button>
               )}
-              {hasPermission(permissions, "All Documents", "Send Email") && (
+              {hasPermission(permissions, "Assigned Documents", "Send Email") && (
                 <button
                   onClick={() =>
                     handleOpenModal(
@@ -6448,7 +6675,7 @@ export default function AllDocTable() {
                 Remove From Search
               </button>
 
-              {hasPermission(permissions, "All Documents", "Archive Document") && (
+              {hasPermission(permissions, "Assigned Documents", "Archive Document") && (
                 <button
                   onClick={() =>
                     handleOpenModal(
@@ -6462,7 +6689,7 @@ export default function AllDocTable() {
                   Archive
                 </button>
               )}
-              {hasPermission(permissions, "All Documents", "Delete Document") && (
+              {hasPermission(permissions, "Assigned Documents", "Delete Document") && (
                 <button
                   onClick={() =>
                     handleOpenModal(
@@ -6664,6 +6891,15 @@ export default function AllDocTable() {
             </div>
           </Modal.Footer>
         </Modal>
+        {/* view sign history model */}
+        {modalStates.viewSignHistoryModel && (
+          <ViewSignHistoryModal
+            show={modalStates.viewSignHistoryModel}
+            handleClose={() => handleCloseModal("viewSignHistoryModel")}
+            documentId={selectedDocumentId}
+            documentName={selectedDocumentName}
+          />
+        )}
         {/* toast message */}
         <ToastMessage
           message={toastMessage}

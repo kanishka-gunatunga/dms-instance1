@@ -526,3 +526,31 @@
   color: #0A0A0A;
   margin: 0;
 }
+
+/* Signing assignment badges */
+.badge {
+  background: #FFF4E8 !important;
+  color: #EA580C !important;
+  border: 1px solid #EA580C !important;
+  padding: 0.375rem 0.75rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.badgeClose {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #EA580C;
+  transition: color 0.2s ease;
+}
+
+.badgeClose:hover {
+  color: #c24a0a;
+}

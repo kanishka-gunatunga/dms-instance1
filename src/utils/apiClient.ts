@@ -3,10 +3,8 @@ import axios, { AxiosProgressEvent } from "axios";
 import Cookies from "js-cookie";
 
 export const API_BASE_URL =
-  // process.env.NEXT_PUBLIC_API_BASE_URL ||
-  // "https://dms1.genaitech.dev/api/";
-process.env.NEXT_PUBLIC_API_BASE_URL ||
-"https://dms1.genaitech.dev/api/";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://dms1.genaitech.dev/api/";
 
 if (!API_BASE_URL) {
   throw new Error("API base URL is not defined in environment variables.");
@@ -242,5 +240,27 @@ export async function deleteAllWithAuth(
   } catch (error) {
     console.error("Error during POST request:", error);
     throw error;
+  }
+}
+
+export async function getBlobWithAuth(endpoint: string): Promise<Blob> {
+  const token = Cookies.get("authToken");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token || ""}`,
+      },
+    });
+
+    if (!response.ok) {
+      return new Blob();
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error("Error during blob GET request:", error);
+    return new Blob();
   }
 }

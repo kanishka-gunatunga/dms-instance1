@@ -460,7 +460,7 @@ export default function AllDocTable() {
                         <td>
                           {item.name}
                         </td>
-                        <td>{item.category.category_name}</td>
+                        <td>{item.category?.category_name}</td>
                         {/* <td>{item.storage}</td> */}
                         <td>{item.archived_date}</td>
                         <td>{item.archived_by}</td>

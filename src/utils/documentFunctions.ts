@@ -2,10 +2,9 @@
 import { getWithAuth } from "./apiClient";
 // import Cookies from "js-cookie";
 export const API_BASE_URL =
-  // process.env.NEXT_PUBLIC_API_BASE_URL ||
-  // "https://dms1.genaitech.dev/api/";
-process.env.NEXT_PUBLIC_API_BASE_URL ||
-"https://dms1.genaitech.dev/api/";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://dms1.genaitech.dev/api/";
+
 
 export const handleView = async (id: number, userId: any) => {
   try {
@@ -118,24 +117,36 @@ export const handleDownload = async (id: number, userId: any) => {
       if (['png', 'jpg', 'jpeg', 'gif'].includes(fileType) || fileType === 'pdf') {
         const fileUrl = response.data;
 
-        const fileResponse = await fetch(fileUrl);
-        if (!fileResponse.ok) {
-          throw new Error('Failed to fetch the file.');
+        try {
+          const fileResponse = await fetch(fileUrl);
+          if (!fileResponse.ok) {
+            throw new Error('Failed to fetch the file.');
+          }
+
+          const blob = await fileResponse.blob();
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+
+          link.download = fileType === 'pdf' ? `${response.name}.pdf` : `${response.name}.${fileType}`;
+          link.click();
+
+          URL.revokeObjectURL(link.href);
+        } catch (fetchError) {
+          console.warn("Fetch failed, falling back to direct link", fetchError);
+          const link = document.createElement('a');
+          link.href = fileUrl;
+          link.setAttribute('download', fileType === 'pdf' ? `${response.name}.pdf` : `${response.name}.${fileType}`);
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         }
-
-        const blob = await fileResponse.blob();
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-
-        link.download = fileType === 'pdf' ? `${response.name}.pdf` : `${response.name}.${fileType}`;
-        link.click();
-
-        URL.revokeObjectURL(link.href);
       } else {
 
         const link = document.createElement('a');
         link.href = response.data;
         link.setAttribute('download', 'document');
+        link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -148,3 +159,42 @@ export const handleDownload = async (id: number, userId: any) => {
   }
 };
 
+export const handleDownloadSignHistory = async (id: number) => {
+  try {
+    const response = await getWithAuth(`document-sign-history/${id}`);
+
+    if (response?.data) {
+      const fileType = response.type;
+      const fileUrl = response.data;
+
+      try {
+        const fileResponse = await fetch(fileUrl);
+        if (!fileResponse.ok) {
+          throw new Error('Failed to fetch the file.');
+        }
+
+        const blob = await fileResponse.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+
+        link.download = `${response.name}.${fileType}`;
+        link.click();
+
+        URL.revokeObjectURL(link.href);
+      } catch (fetchError) {
+        console.warn("Fetch failed, falling back to direct link", fetchError);
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.setAttribute('download', `${response.name}.${fileType}`);
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else {
+      console.error('Download URL not found in response.');
+    }
+  } catch (error) {
+    console.error('Error downloading sign history:', error);
+  }
+};
