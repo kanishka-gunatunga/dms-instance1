@@ -46,8 +46,8 @@ const ViewSignHistoryModal: React.FC<ViewSignHistoryModalProps> = ({
       } else {
         setError(response?.message || "Failed to fetch sign status");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred while fetching sign status");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred while fetching sign status");
     } finally {
       setLoading(false);
     }
