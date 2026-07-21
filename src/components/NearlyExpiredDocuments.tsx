@@ -261,9 +261,9 @@ const NearlyExpiredDocuments: React.FC<NearlyExpiredDocumentsProps> = ({
                     style={{ fontSize: '14px', borderTop: '1px solid rgba(0, 0, 0, 0.1)', paddingTop: '10px' }}>
                     <small
                         style={{ color: '#717182' }}>Showing {documents.filter((doc) => doc.days_to_expire > 0).length} documents</small>
-                    <Link href="/all-documents" className="text-decoration-none" style={{ color: '#F54900' }}>View All
+                    {/* <Link href="/all-documents" className="text-decoration-none" style={{ color: '#F54900' }}>View All
                         Expired
-                        Documents</Link>
+                        Documents</Link> */}
                 </div>
             </div>
 
